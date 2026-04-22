@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",      // <--- Esto es lo más importante
+    //"moduleResolution": "node", 
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,   // <--- Permite importar módulos CJS como si fueran ESM
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"]
+}

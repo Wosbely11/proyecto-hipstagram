@@ -1,0 +1,148 @@
+
+
+services:
+  # 1. Base de Datos PostgreSQL
+  db:
+    image: postgres:15
+    container_name: hipstagram_db
+    restart: always
+    environment:
+      POSTGRES_DB: hipstagram_db
+      POSTGRES_USER: hipstagram_admin
+      POSTGRES_PASSWORD: adminpassword123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      #- ./init.sql:/docker-entrypoint-initdb.d/init.sql # Para crear las tablas al inicio
+
+  # 2. Auth Service (Puerto 3001)
+  auth-service:
+    build: ./backend/auth-service
+    container_name: auth_service
+    #ports:
+     # - "3001:3001"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - AUDIT_SERVICE_URL=http://audit-service:3003/log
+    env_file: ./backend/auth-service/.env
+    depends_on:
+      - db
+      - audit-service
+
+  # 3. Post Service (Puerto 3002)
+  post-service:
+    build: ./backend/post-service
+    container_name: post_service
+    #ports:
+    #  - "3002:3002"
+    env_file: ./backend/post-service/.env
+    volumes:
+      - ./backend/post-service/uploads:/app/uploads
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+      - audit-service
+
+  # 4. Audit Service (Puerto 3003)
+  audit-service:
+    build: ./backend/audit-service
+    container_name: audit_service
+    #ports:
+    #  - "3003:3003"
+    env_file: ./backend/audit-service/.env
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+
+  # 5. Interactions Service (Puerto 3004)
+  interactions-service:
+    build: ./backend/interactions-service
+    container_name: interactions_service
+    #ports:
+    #  - "3004:3004"
+    env_file: ./backend/interactions-service/.env
+    environment:                 # <--- Añadido
+      - DB_HOST=db               # <--- Forzamos la conexión a Docker
+      - DB_PORT=5432
+    depends_on:
+      - db
+      - audit-service
+
+  # 6. Search Service (Puerto 3005)
+  search-service:
+    build: ./backend/search-service
+    container_name: search_service
+    #ports:
+    #  - "3005:3005"
+    env_file: ./backend/search-service/.env
+    environment:                 # <--- Añadido
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+  # 7. User Service (Puerto 3006)
+  user-service:
+    build: ./backend/user-service
+    container_name: user_service
+    #ports:
+    #  - "3006:3006"
+    env_file: ./backend/user-service/.env
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+
+  # 8. Media Service - S3 (Puerto 3007)
+  media-service:
+    build: ./backend/media-service
+    container_name: media_service
+    #ports:
+    #  - "3007:3007"
+    env_file: ./backend/media-service/.env
+    environment:                 # <--- Añadido
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:                  # <--- Añadido
+      - db
+
+  # 9. Moderation Service (Puerto 3008)
+  moderation-service:
+    build: ./backend/moderation-service
+    container_name: moderation_service
+    #ports:
+    #  - "3008:3008"
+    env_file: ./backend/moderation-service/.env
+    environment:                 # <--- Añadido
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+
+  # 10. API Gateway (Puerto 8080) - Punto de entrada único
+  api-gateway:
+    build: ./backend/api-gateway
+    container_name: api_gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - post-service
+      - user-service
+      - media-service
+      - search-service
+      - interactions-service
+      - audit-service
+      - moderation-service
+    environment:
+      - PORT=8080
+
+volumes:
+  postgres_data:
