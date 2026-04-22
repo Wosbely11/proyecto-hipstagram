@@ -1,0 +1,12 @@
+/* You can add global styles to this file, and also import other style files */
+/* Importación principal de Tailwind v4 */
+@import "tailwindcss";
+
+/* Tu paleta de colores Summer Splash inyectada directamente */
+@theme {
+  --color-hipstagram-dark: #133C55;
+  --color-hipstagram-primary: #386FA4;
+  --color-hipstagram-secondary: #59A5D8;
+  --color-hipstagram-light: #84D2F6;
+  --color-hipstagram-lighter: #91E5F6;
+}
