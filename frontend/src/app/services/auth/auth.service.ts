@@ -43,8 +43,9 @@ export class AuthService {
     return localStorage.getItem('token');
   }
 
-  // Cierra la sesión eliminando el token
+  // Cierra la sesión eliminando el token y el rol
   logout(): void {
     localStorage.removeItem('token');
+    localStorage.removeItem('rol'); // <-- NUEVO
   }
 }
