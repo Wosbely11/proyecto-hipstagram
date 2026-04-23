@@ -11,6 +11,26 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// --- RUTA NUEVA: OBTENER TODOS LOS USUARIOS (SOLO ADMIN) ---
+// El API Gateway manda las peticiones de /users a la raíz de este servicio ('/')
+app.get('/', verificarToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.rol !== 'ADMIN') {
+        return res.status(403).json({ message: "Acceso denegado: Solo para administradores" });
+    }
+
+    try {
+        const result = await pool.query(`
+            SELECT id, username, email, rol, activo, fecha_creacion 
+            FROM usuarios 
+            ORDER BY fecha_creacion DESC
+        `);
+        res.json(result.rows);
+    } catch (err: any) {
+        console.error("Error obteniendo usuarios:", err.message);
+        res.status(500).json({ error: "Error interno al obtener la lista de usuarios" });
+    }
+});
+
 // --- VER PERFIL ---
 app.get('/perfil/:id', verificarToken, async (req: AuthRequest, res: Response) => {
     try {
