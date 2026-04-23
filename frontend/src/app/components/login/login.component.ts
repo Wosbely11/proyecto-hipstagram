@@ -28,9 +28,8 @@ export class LoginComponent {
         // Guardamos el token
         this.authService.guardarToken(respuesta.token);
         
-        // NUEVO: Guardamos el rol en el LocalStorage
-
-        const rolUsuario = respuesta.usuario?.rol || 'USER'; 
+        // Usamos respuesta.user para auth-service
+        const rolUsuario = respuesta.user?.rol || 'USER'; 
         localStorage.setItem('rol', rolUsuario);
         
         // Redirección inteligente
