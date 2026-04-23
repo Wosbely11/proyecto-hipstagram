@@ -90,7 +90,13 @@
                 </td>
                 <td class="p-4 text-center space-x-2">
                   <button class="text-xs text-blue-600 hover:text-blue-800 font-bold underline" title="Cambiar Rol">Promover</button>
-                  <button class="text-xs text-red-500 hover:text-red-700 font-bold underline" title="Activar/Desactivar">Suspender</button>
+                  <button 
+                    (click)="alternarEstado(u)"
+                    class="text-xs font-bold underline transition-colors"
+                    [ngClass]="u.activo ? 'text-red-500 hover:text-red-700' : 'text-green-600 hover:text-green-800'"
+                    [title]="u.activo ? 'Desactivar cuenta' : 'Activar cuenta'">
+                    {{ u.activo ? 'Suspender' : 'Activar' }}
+                  </button>
                 </td>
               </tr>
             </tbody>

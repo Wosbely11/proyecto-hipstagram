@@ -39,6 +39,28 @@ export class AdminComponent implements OnInit {
     });
   }
 
+  alternarEstado(usuario: any) {
+    // Invertimos el estado actual (si es true pasa a false, y viceversa)
+    const nuevoEstado = !usuario.activo; 
+
+    // Opcional pero recomendado: Preguntar al admin si está seguro
+    const confirmacion = confirm(`¿Estás seguro de que deseas ${nuevoEstado ? 'ACTIVAR' : 'SUSPENDER'} a ${usuario.username}?`);
+    
+    if (confirmacion) {
+      this.adminService.cambiarEstadoUsuario(usuario.id, nuevoEstado).subscribe({
+        next: (res) => {
+          // Si el backend responde con éxito, actualizamos el estado visualmente en la tabla
+          usuario.activo = nuevoEstado;
+          console.log("Éxito:", res.message);
+        },
+        error: (err) => {
+          console.error('Error al cambiar el estado del usuario:', err);
+          alert('Hubo un error al intentar cambiar el estado.');
+        }
+      });
+    }
+  }
+
   cambiarVista(vista: 'usuarios' | 'auditoria' | 'moderacion') {
     this.vistaActual = vista;
   }
