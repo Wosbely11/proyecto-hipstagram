@@ -89,7 +89,13 @@
                   </span>
                 </td>
                 <td class="p-4 text-center space-x-2">
-                  <button class="text-xs text-blue-600 hover:text-blue-800 font-bold underline" title="Cambiar Rol">Promover</button>
+                 <button 
+                    (click)="cambiarRol(u)"
+                    class="text-xs font-bold underline transition-colors"
+                    [ngClass]="u.rol === 'ADMIN' ? 'text-orange-500 hover:text-orange-700' : 'text-blue-600 hover:text-blue-800'"
+                    [title]="u.rol === 'ADMIN' ? 'Revocar administrador' : 'Hacer administrador'">
+                    {{ u.rol === 'ADMIN' ? 'Quitar Admin' : 'Promover' }}
+                  </button>
                   <button 
                     (click)="alternarEstado(u)"
                     class="text-xs font-bold underline transition-colors"

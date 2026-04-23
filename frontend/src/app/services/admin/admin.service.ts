@@ -33,5 +33,14 @@ export class AdminService {
     // Hacemos un PUT a /users/admin/status
     return this.http.put(`${this.apiUrl}/users/admin/status`, body, { headers: this.getHeaders() });
   }
-  
+
+  // --- NUEVO MÉTODO PARA CAMBIAR ROL ---
+  cambiarRolUsuario(usuarioId: string, nuevoRol: string): Observable<any> {
+    const body = { 
+      usuario_id: usuarioId, 
+      rol: nuevoRol 
+    };
+    return this.http.put(`${this.apiUrl}/users/admin/role`, body, { headers: this.getHeaders() });
+  }
+
 }

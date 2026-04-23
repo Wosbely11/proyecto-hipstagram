@@ -74,6 +74,35 @@ app.put('/admin/status', verificarToken, async (req: AuthRequest, res: Response)
     }
 });
 
+// --- CAMBIAR ROL (Solo ADMIN) ---
+app.put('/admin/role', verificarToken, async (req: AuthRequest, res: Response) => {
+    const { usuario_id, rol } = req.body;
+
+    if (req.user?.rol !== 'ADMIN') {
+        return res.status(403).send("Acceso denegado: Se requiere rol de ADMIN");
+    }
+
+    try {
+        await pool.query(
+            "UPDATE usuarios SET rol = $1 WHERE id = $2",
+            [rol, usuario_id]
+        );
+
+        res.json({ message: `Rol actualizado a ${rol} correctamente` });
+
+        // Guardamos el movimiento en la auditoría
+        axios.post('http://audit-service:3003/log', {
+            usuario_id: req.user.id,
+            accion: 'CAMBIO_DE_ROL',
+            detalles: `Admin cambió el rol del usuario ${usuario_id} a ${rol}`,
+            ip_origen: req.ip
+        }).catch(err => console.error("Error enviando a auditoría:", err.message));
+
+    } catch (err) {
+        res.status(500).send("Error al actualizar rol");
+    }
+});
+
 const PORT = process.env.PORT || 3006;
 app.listen(PORT, () => {
     console.log(`👤 User-Service en TS corriendo en puerto ${PORT}`);

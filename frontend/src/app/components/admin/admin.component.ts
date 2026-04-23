@@ -61,6 +61,28 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  cambiarRol(usuario: any) {
+    // Si es ADMIN lo bajamos a USER, si es USER lo subimos a ADMIN
+    const nuevoRol = usuario.rol === 'ADMIN' ? 'USER' : 'ADMIN'; 
+    const accion = nuevoRol === 'ADMIN' ? 'otorgar privilegios de ADMIN' : 'quitar privilegios de ADMIN';
+
+    const confirmacion = confirm(`¿Estás seguro de que deseas ${accion} a ${usuario.username}?`);
+    
+    if (confirmacion) {
+      this.adminService.cambiarRolUsuario(usuario.id, nuevoRol).subscribe({
+        next: (res) => {
+          // Actualizamos la vista
+          usuario.rol = nuevoRol;
+          console.log("Éxito:", res.message);
+        },
+        error: (err) => {
+          console.error('Error al cambiar el rol del usuario:', err);
+          alert('Hubo un error al intentar cambiar el rol.');
+        }
+      });
+    }
+  }
+
   cambiarVista(vista: 'usuarios' | 'auditoria' | 'moderacion') {
     this.vistaActual = vista;
   }
