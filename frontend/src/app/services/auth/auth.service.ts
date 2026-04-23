@@ -25,6 +25,13 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/auth/register`, usuario);
   }
 
+  // Verifica si el usuario tiene un token guardado (sesión activa)
+  isAuthenticated(): boolean {
+    const token = localStorage.getItem('token');
+    // Retorna true si el token existe, false si no existe
+    return !!token; 
+  }
+
   // Métodos útiles para manejar el Token en el navegador
   // Guarda el token en el almacenamiento local del navegador
   guardarToken(token: string): void {
