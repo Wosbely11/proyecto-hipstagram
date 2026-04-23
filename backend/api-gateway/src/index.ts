@@ -24,7 +24,12 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 
 // 2. MAPEO DE RUTAS (PROXIES) ACTUALIZADO
-app.use('/auth', proxy('http://auth-service:3001'));
+app.use('/users', proxy('http://auth-service:3001', {
+    proxyReqPathResolver: (req) => {
+        return '/users' + req.url; 
+    }
+}));
+
 app.use('/users', proxy('http://user-service:3006'));
 
 // Modificamos el proxy para que limpie el prefijo
