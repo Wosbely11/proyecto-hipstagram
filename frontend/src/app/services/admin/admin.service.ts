@@ -23,4 +23,15 @@ export class AdminService {
     // Hace la petición al API Gateway (que lo mandará al user-service)
     return this.http.get(`${this.apiUrl}/users`, { headers: this.getHeaders() });
   }
+
+  // --- NUEVO MÉTODO PARA CAMBIAR ESTADO ---
+  cambiarEstadoUsuario(usuarioId: string, nuevoEstado: boolean): Observable<any> {
+    const body = { 
+      usuario_id: usuarioId, 
+      activo: nuevoEstado 
+    };
+    // Hacemos un PUT a /users/admin/status
+    return this.http.put(`${this.apiUrl}/users/admin/status`, body, { headers: this.getHeaders() });
+  }
+  
 }
