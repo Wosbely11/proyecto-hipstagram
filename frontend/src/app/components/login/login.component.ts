@@ -22,15 +22,23 @@ export class LoginComponent {
 
   constructor(private authService: AuthService, private router: Router) {}
 
-  iniciarSesion() {
+ iniciarSesion() {
     this.authService.login(this.credenciales).subscribe({
       next: (respuesta) => {
-        // Guardamos el token que nos devuelve el backend
+        // Guardamos el token
         this.authService.guardarToken(respuesta.token);
         
-        // Aquí decidiremos a dónde enviarlo dependiendo de su rol
-        // Por ahora lo enviamos a una ruta ficticia '/feed'
-        this.router.navigate(['/feed']); 
+        // NUEVO: Guardamos el rol en el LocalStorage
+
+        const rolUsuario = respuesta.usuario?.rol || 'USER'; 
+        localStorage.setItem('rol', rolUsuario);
+        
+        // Redirección inteligente
+        if (rolUsuario === 'ADMIN') {
+          this.router.navigate(['/admin']); 
+        } else {
+          this.router.navigate(['/feed']); 
+        }
       },
       error: (err) => {
         this.mensajeError = 'Credenciales incorrectas. Inténtalo de nuevo.';
@@ -38,4 +46,6 @@ export class LoginComponent {
       }
     });
   }
+
+
 }
