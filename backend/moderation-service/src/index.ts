@@ -30,12 +30,14 @@ const writeWords = (words: string[]) => {
 };
 
 // --- RUTA: OBTENER PALABRAS ---
+//app.get(['/words', '/moderation/words'], verificarToken, (req: AuthRequest, res: Response) => {
 app.get('/words', verificarToken, (req: AuthRequest, res: Response) => {
     if (req.user?.rol !== 'ADMIN') return res.status(403).json({ message: "Acceso denegado" });
     res.json(readWords());
 });
 
 // --- RUTA: AGREGAR PALABRA ---
+//app.post(['/words', '/moderation/words'], verificarToken, (req: AuthRequest, res: Response) => {
 app.post('/words', verificarToken, (req: AuthRequest, res: Response) => {
     if (req.user?.rol !== 'ADMIN') return res.status(403).json({ message: "Acceso denegado" });
     
@@ -56,6 +58,7 @@ app.post('/words', verificarToken, (req: AuthRequest, res: Response) => {
 });
 
 // --- RUTA: ELIMINAR PALABRA ---
+//app.delete(['/words/:word', '/moderation/words/:word'], verificarToken, (req: AuthRequest, res: Response) => {
 app.delete('/words/:word', verificarToken, (req: AuthRequest, res: Response) => {
     if (req.user?.rol !== 'ADMIN') return res.status(403).json({ message: "Acceso denegado" });
     
