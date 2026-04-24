@@ -36,7 +36,6 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
     
     if (!req.file) return res.status(400).send("No se subió ninguna imagen");
 
-    // Parámetros para S3
     const params = {
         Bucket: process.env.AWS_BUCKET_NAME || '',
         Key: `${Date.now()}-${req.file.originalname}`,
@@ -49,54 +48,55 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
         const s3Response = await s3.upload(params).promise();
         const imageUrl = s3Response.Location;
 
-        // 2. Guardar en Postgres
+        // 2. LÓGICA DE MODERACIÓN AUTOMÁTICA
+        let estadoInicial = 'APROBADO'; // Por defecto
+        try {
+            const modResponse = await axios.post('http://moderation-service:3008/check', { 
+                text: descripcion 
+            });
+            estadoInicial = modResponse.data.clean ? 'APROBADO' : 'PENDIENTE';
+        } catch (e: any) {
+            console.error("⚠️ Error llamando a Moderación (Check):", e.message);
+            // Si el servicio de moderación falla, lo aprobamos por defecto para no bloquear la app
+        }
+
+        // 3. Guardar en Postgres (Ahora incluye estado_moderacion)
         const result = await pool.query(
-            "INSERT INTO publicaciones (usuario_id, url_imagen, descripcion) VALUES ($1, $2, $3) RETURNING *",
-            [usuario_id, imageUrl, descripcion]
+            "INSERT INTO publicaciones (usuario_id, url_imagen, descripcion, estado_moderacion) VALUES ($1, $2, $3, $4) RETURNING *",
+            [usuario_id, imageUrl, descripcion, estadoInicial]
         );
         const nuevaPublicacion = result.rows[0];
 
-        // 3. LÓGICA DE HASHTAGS
-        // Extraemos palabras que empiezan con # (ej: "#guate #viaje" -> ["guate", "viaje"])
-        const palabras = descripcion.split(' ');
+        // 4. LÓGICA DE HASHTAGS
+        const palabras = (descripcion || '').split(' ');
         const hashtags = palabras
             .filter((word: string) => word.startsWith('#'))
             .map((tag: string) => tag.replace('#', '').toLowerCase());
 
         if (hashtags.length > 0) {
             for (const tag of hashtags) {
-                // Insertamos el hashtag si no existe
                 await pool.query(
                     "INSERT INTO hashtags (nombre) VALUES ($1) ON CONFLICT (nombre) DO NOTHING",
                     [tag]
                 );
-                
-                // Obtenemos su ID
                 const tagResult = await pool.query("SELECT id FROM hashtags WHERE nombre = $1", [tag]);
                 const tagId = tagResult.rows[0].id;
-
-                // Vinculamos el hashtag a la publicación
                 await pool.query(
                     "INSERT INTO publicaciones_hashtags (publicacion_id, hashtag_id) VALUES ($1, $2)",
                     [nuevaPublicacion.id, tagId]
                 );
             }
-
-            // 4. LLAMAR A MODERACIÓN
-            axios.post('http://moderation-service:3008/validar-hashtags', {
-                hashtags: hashtags,
-                publicacion_id: nuevaPublicacion.id
-            }).catch(e => console.error("⚠️ Error llamando a Moderación:", e.message));
         }
 
         // 5. ENVIAR RESPUESTA AL USUARIO
-        res.json({ message: "Publicación creada exitosamente", post: nuevaPublicacion });
+        const msg = estadoInicial === 'APROBADO' ? "Publicación creada exitosamente" : "Post en revisión por contenido";
+        res.status(201).json({ message: msg, post: nuevaPublicacion });
 
         // 6. NOTIFICAR A AUDITORÍA
         axios.post('http://audit-service:3003/log', {
             usuario_id,
             accion: 'CREAR_POST',
-            detalles: `Post creado con ID: ${nuevaPublicacion.id} y ${hashtags.length} hashtags.`,
+            detalles: `Post creado con ID: ${nuevaPublicacion.id}. Estado: ${estadoInicial}`,
             ip_origen: req.ip
         }).catch(e => console.error("⚠️ Error en auditoría:", e.message));
 
@@ -105,6 +105,7 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
         res.status(500).json({ error: "Fallo en la subida a S3 o Base de Datos" });
     }
 });
+
 
 // --- RUTA: OBTENER TODOS LOS POSTS (FEED) ---
 app.get('/', async (req, res) => {
@@ -128,6 +129,7 @@ app.get('/', async (req, res) => {
                 ), '[]'::json) AS comentarios
             FROM publicaciones p
             LEFT JOIN usuarios u ON p.usuario_id = u.id
+            WHERE p.estado_moderacion = 'APROBADO' -- <--- El filtro de moderación
             ORDER BY p.fecha_publicacion DESC
         `);
         
@@ -137,6 +139,8 @@ app.get('/', async (req, res) => {
         res.status(500).json({ error: "No se pudo cargar el feed" });
     }
 });
+
+
 // --- RUTA: ELIMINAR POST ---
 app.delete('/delete/:id', verificarToken, async (req: AuthRequest, res: Response) => {
     const { id } = req.params;

@@ -43,6 +43,32 @@ app.get(['/'], verificarToken, async (req: AuthRequest, res: Response) => {
     }
 });
 
+app.get(['/', '/audit'], verificarToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.rol !== 'ADMIN') return res.status(403).send("No autorizado");
+
+    const { usuario_id, accion, fecha } = req.query;
+    let query = "SELECT * FROM auditoria WHERE 1=1";
+    const params: any[] = [];
+
+    if (usuario_id) {
+        params.push(usuario_id);
+        query += ` AND usuario_id = $${params.length}`;
+    }
+    if (accion) {
+        params.push(accion);
+        query += ` AND accion = $${params.length}`;
+    }
+    if (fecha) {
+        params.push(`${fecha}%`); // Para buscar por el inicio de la fecha (YYYY-MM-DD)
+        query += ` AND fecha_accion::text LIKE $${params.length}`;
+    }
+
+    query += " ORDER BY fecha_accion DESC LIMIT 100";
+
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+});
+
 const PORT = process.env.PORT || 3003;
 
 app.listen(PORT, () => {
