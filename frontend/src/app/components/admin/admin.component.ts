@@ -52,7 +52,7 @@ export class AdminComponent implements OnInit {
     // Invertimos el estado actual (si es true pasa a false, y viceversa)
     const nuevoEstado = !usuario.activo; 
 
-    // Opcional pero recomendado: Preguntar al admin si está seguro
+    //Preguntar al admin si está seguro
     const confirmacion = confirm(`¿Estás seguro de que deseas ${nuevoEstado ? 'ACTIVAR' : 'SUSPENDER'} a ${usuario.username}?`);
     
     if (confirmacion) {
