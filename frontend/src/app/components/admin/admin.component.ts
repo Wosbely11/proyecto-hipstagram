@@ -148,6 +148,14 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  filtrosAudit = { usuario_id: '', accion: '', fecha: '' };
+
+  aplicarFiltros() {
+  this.adminService.obtenerAuditoriaFiltrada(this.filtrosAudit).subscribe(data => {
+    this.logsAuditoria = data;
+  });
+  }
+
   cambiarVista(vista: 'usuarios' | 'auditoria' | 'moderacion') {
     this.vistaActual = vista;
     if (vista === 'auditoria') this.cargarAuditoria();

@@ -73,4 +73,11 @@ export class AdminService {
     return this.http.put(`${this.apiUrl}/posts/admin/moderation/${postId}`, body, { headers: this.getHeaders() });
   }
 
+  obtenerAuditoriaFiltrada(filtros: any): Observable<any> {
+  return this.http.get(`${this.apiUrl}/audit`, { 
+    headers: this.getHeaders(),
+    params: filtros 
+  });
+}
+
 }
