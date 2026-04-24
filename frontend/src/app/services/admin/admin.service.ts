@@ -43,4 +43,10 @@ export class AdminService {
     return this.http.put(`${this.apiUrl}/users/admin/role`, body, { headers: this.getHeaders() });
   }
 
+  // --- NUEVO MÉTODO PARA OBTENER LOGS ---
+  obtenerAuditoria(): Observable<any> {
+    // Hace la petición al API Gateway (ruta /audit)
+    return this.http.get(`${this.apiUrl}/audit`, { headers: this.getHeaders() });
+  }
+
 }

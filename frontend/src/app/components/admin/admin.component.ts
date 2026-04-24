@@ -17,6 +17,7 @@ export class AdminComponent implements OnInit {
   
   // Arreglo para guardar los usuarios que nos manda el backend
   usuarios: any[] = []; 
+  logsAuditoria: any[] = [];
 
   constructor(
     private authService: AuthService, 
@@ -83,8 +84,20 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  cargarAuditoria() {
+    this.adminService.obtenerAuditoria().subscribe({
+      next: (data) => this.logsAuditoria = data,
+      error: (err) => console.error('Error al cargar la auditoría:', err)
+    });
+  }
+
   cambiarVista(vista: 'usuarios' | 'auditoria' | 'moderacion') {
     this.vistaActual = vista;
+    
+    // Si entramos a la vista de auditoría, cargamos los datos
+    if (vista === 'auditoria') {
+      this.cargarAuditoria();
+    }
   }
 
   cerrarSesion() {

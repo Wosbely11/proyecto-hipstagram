@@ -115,9 +115,43 @@
       </div>
 
       <div *ngIf="vistaActual === 'auditoria'" class="animate-fade-in">
-        <h2 class="text-3xl font-bold text-gray-800 mb-6">Logs del Sistema</h2>
-        <div class="bg-white p-10 rounded-xl shadow-sm border border-gray-200 flex items-center justify-center text-gray-400">
-          <p>El registro de auditoría se cargará aquí...</p>
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Registro de Actividad</h2>
+        
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
+                <th class="p-4 font-semibold">Fecha y Hora</th>
+                <th class="p-4 font-semibold">ID Usuario</th>
+                <th class="p-4 font-semibold">Acción</th>
+                <th class="p-4 font-semibold">Detalles</th>
+                <th class="p-4 font-semibold">IP Origen</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 text-sm">
+              <tr *ngFor="let log of logsAuditoria" class="hover:bg-gray-50 transition-colors">
+                <td class="p-4 text-gray-500 whitespace-nowrap">
+                  {{ log.fecha_accion | date:'short' }}
+                </td>
+                <td class="p-4 font-mono text-gray-600">{{ log.usuario_id }}</td>
+                <td class="p-4">
+                  <span class="px-2 py-1 text-xs font-bold rounded-md bg-gray-100 text-gray-700">
+                    {{ log.accion }}
+                  </span>
+                </td>
+                <td class="p-4 text-gray-600 truncate max-w-xs" [title]="log.detalles">
+                  {{ log.detalles }}
+                </td>
+                <td class="p-4 font-mono text-xs text-gray-400">
+                  {{ log.ip_origen || 'Desconocida' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div *ngIf="logsAuditoria.length === 0" class="p-8 text-center text-gray-500">
+            No hay registros de auditoría disponibles.
+          </div>
         </div>
       </div>
 
