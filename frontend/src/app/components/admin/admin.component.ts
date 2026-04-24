@@ -174,9 +174,31 @@ export class AdminComponent implements OnInit {
   };
 
   aplicarFiltrosAuditoria() {
-    this.adminService.obtenerAuditoria(this.filtrosAudit).subscribe({
-      next: (data) => this.logsAuditoria = data,
-      error: (err) => console.error('Error al filtrar auditoría:', err)
+    // 1. Creamos un objeto limpio solo con los filtros que sí tienen texto
+    const filtrosLimpios: any = {};
+    
+    if (this.filtrosAudit.usuario_id.trim() !== '') {
+      filtrosLimpios.usuario_id = this.filtrosAudit.usuario_id.trim();
+    }
+    if (this.filtrosAudit.accion.trim() !== '') {
+      filtrosLimpios.accion = this.filtrosAudit.accion.trim();
+    }
+    if (this.filtrosAudit.fecha.trim() !== '') {
+      filtrosLimpios.fecha = this.filtrosAudit.fecha.trim();
+    }
+
+    console.log("Enviando filtros al backend:", filtrosLimpios);
+
+    // 2. Enviamos la petición
+    this.adminService.obtenerAuditoria(filtrosLimpios).subscribe({
+      next: (data) => {
+        console.log("Resultados encontrados:", data.length);
+        this.logsAuditoria = data;
+      },
+      error: (err) => {
+        console.error('Error al filtrar auditoría:', err);
+        alert('Hubo un problema al aplicar los filtros.');
+      }
     });
   }
 

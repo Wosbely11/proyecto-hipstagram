@@ -16,41 +16,44 @@ app.use(express.json());
 app.use(cors());
 
 // Rutas 
-//app.use('/audit', auditRoutes);
 app.use('/', auditRoutes);
-// --- OBTENER LOGS DE AUDITORÍA (Solo ADMIN) ---
-// El API Gateway enviará las peticiones de /audit hacia aquí ('/')
 
-// --- RUTA: OBTENER LOGS DE AUDITORÍA (Solo ADMIN) ---
-// Escucha en ambas rutas por seguridad
-app.get(['/'], verificarToken, async (req: AuthRequest, res: Response) => {
-//app.get(['/', '/audit'], verificarToken, async (req: AuthRequest, res: Response) => {
+// --- RUTA ÚNICA: OBTENER LOGS DE AUDITORÍA CON FILTROS ---
+app.get(['/', '/audit'], verificarToken, async (req: AuthRequest, res: Response) => {
     if (req.user?.rol !== 'ADMIN') return res.status(403).send("No autorizado");
 
     const { usuario_id, accion, fecha } = req.query;
     let query = "SELECT * FROM auditoria WHERE 1=1";
     const params: any[] = [];
 
+    // Filtro por ID de Usuario
     if (usuario_id) {
         params.push(usuario_id);
         query += ` AND usuario_id = $${params.length}`;
     }
+    
+    // Filtro por Acción
     if (accion) {
         params.push(accion);
         query += ` AND accion = $${params.length}`;
     }
+    
+    // Filtro por Fecha (Busca todo lo que empiece con la fecha seleccionada)
     if (fecha) {
-        params.push(`${fecha}%`); // Para buscar por el inicio de la fecha (YYYY-MM-DD)
+        params.push(`${fecha}%`); 
         query += ` AND fecha_accion::text LIKE $${params.length}`;
     }
 
     query += " ORDER BY fecha_accion DESC LIMIT 100";
 
-    const result = await pool.query(query, params);
-    res.json(result.rows);
+    try {
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err: any) {
+        console.error("Error obteniendo auditoría filtrada:", err.message);
+        res.status(500).json({ error: "Error interno al obtener los logs" });
+    }
 });
-
-
 
 const PORT = process.env.PORT || 3003;
 
