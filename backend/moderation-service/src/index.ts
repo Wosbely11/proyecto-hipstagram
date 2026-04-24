@@ -75,21 +75,30 @@ app.delete('/words/:word', verificarToken, (req: AuthRequest, res: Response) => 
 
 // --- RUTA: COMPROBAR TEXTO (Usada por el post-service) ---
 // Escucha tanto en /check como en /moderation/check por si acaso
+// --- RUTA: COMPROBAR TEXTO (Usada por el post-service) ---
 app.post(['/check', '/moderation/check'], (req: Request, res: Response) => {
     const { text } = req.body;
+    console.log("--- PROCESO DE MODERACIÓN ---");
+    console.log("Texto recibido:", text);
     
-    // Si no hay texto, es limpio
     if (!text) return res.json({ clean: true });
 
-    const bannedWords = readWords(); // Lee el JSON
-    const wordsInText = text.toLowerCase().split(/\s+/);
+    const bannedWords = readWords();
+    const lowerText = String(text).toLowerCase();
 
-    // Verifica si alguna palabra prohibida está en el texto
-    const containsBanned = bannedWords.some((banned: string) => wordsInText.includes(banned));
+    const badWordFound = bannedWords.find((banned: string) => 
+        lowerText.includes(banned.toLowerCase().trim())
+    );
 
-    // Devuelve true si está limpio, false si contiene groserías
-    res.json({ clean: !containsBanned });
+    if (badWordFound) {
+        console.log(`⚠️ BLOQUEADO: Se encontró la palabra [${badWordFound}]`);
+        return res.json({ clean: false });
+    }
+
+    res.json({ clean: true });
 });
+
+
 const PORT = process.env.PORT || 3008;
 app.listen(PORT, () => {
     console.log(`🛡️ Moderation-Service corriendo en puerto ${PORT}`);

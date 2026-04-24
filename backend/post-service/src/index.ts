@@ -30,6 +30,7 @@ const upload = multer({ storage });
 
 
 // --- RUTA: SUBIR POST ---
+// --- RUTA: SUBIR POST ---
 app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequest, res: Response) => {
     const { descripcion } = req.body;
     const usuario_id = req.user?.id;
@@ -51,23 +52,23 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
         // 2. LÓGICA DE MODERACIÓN AUTOMÁTICA
         let estadoInicial = 'APROBADO'; // Por defecto
         try {
+            // AQUÍ ESTÁ LA MAGIA: Llamamos a la ruta /check correctamente
             const modResponse = await axios.post('http://moderation-service:3008/check', { 
                 text: descripcion 
             });
             estadoInicial = modResponse.data.clean ? 'APROBADO' : 'PENDIENTE';
         } catch (e: any) {
             console.error("⚠️ Error llamando a Moderación (Check):", e.message);
-            // Si el servicio de moderación falla, lo aprobamos por defecto para no bloquear la app
         }
 
-        // 3. Guardar en Postgres (Ahora incluye estado_moderacion)
+        // 3. Guardar en Postgres con el estado de moderación incluido
         const result = await pool.query(
             "INSERT INTO publicaciones (usuario_id, url_imagen, descripcion, estado_moderacion) VALUES ($1, $2, $3, $4) RETURNING *",
             [usuario_id, imageUrl, descripcion, estadoInicial]
         );
         const nuevaPublicacion = result.rows[0];
 
-        // 4. LÓGICA DE HASHTAGS
+        // 4. LÓGICA DE HASHTAGS (Limpia)
         const palabras = (descripcion || '').split(' ');
         const hashtags = palabras
             .filter((word: string) => word.startsWith('#'))
