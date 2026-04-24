@@ -55,7 +55,13 @@ app.use('/search', proxy('http://search-service:3005', {
         return req.url; 
     }
 }));
-app.use('/audit', proxy('http://audit-service:3003'));
+app.use('/audit', proxy('http://audit-service:3003', {
+    proxyReqPathResolver: (req) => {
+        // Si piden /audit a secas, lo manda a la raíz (/) del microservicio
+        return (req.url === '' || req.url === '/') ? '/' : req.url;
+    }
+}));
+
 app.use('/moderation', proxy('http://moderation-service:3008'));
 
 const PORT = process.env.PORT || 8080;

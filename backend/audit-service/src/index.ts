@@ -20,14 +20,16 @@ app.use(cors());
 app.use('/', auditRoutes);
 // --- OBTENER LOGS DE AUDITORÍA (Solo ADMIN) ---
 // El API Gateway enviará las peticiones de /audit hacia aquí ('/')
-app.get('/', verificarToken, async (req: AuthRequest, res: Response) => {
-    // Verificamos que sea un Administrador
+
+// --- RUTA: OBTENER LOGS DE AUDITORÍA (Solo ADMIN) ---
+// Escucha en ambas rutas por seguridad
+app.get(['/'], verificarToken, async (req: AuthRequest, res: Response) => {
+    
     if (req.user?.rol !== 'ADMIN') {
         return res.status(403).json({ message: "Acceso denegado: Solo para administradores" });
     }
 
     try {
-        // Traemos los últimos 100 movimientos, del más reciente al más antiguo
         const result = await pool.query(`
             SELECT id, usuario_id, accion, detalles, ip_origen, fecha_accion 
             FROM auditoria 
@@ -40,6 +42,7 @@ app.get('/', verificarToken, async (req: AuthRequest, res: Response) => {
         res.status(500).json({ error: "Error interno al obtener los logs" });
     }
 });
+
 const PORT = process.env.PORT || 3003;
 
 app.listen(PORT, () => {
