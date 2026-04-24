@@ -44,11 +44,13 @@ export class AdminService {
   }
 
   // --- NUEVO MÉTODO PARA OBTENER LOGS ---
-  obtenerAuditoria(): Observable<any> {
-    // Hace la petición al API Gateway (ruta /audit)
-    return this.http.get(`${this.apiUrl}/audit`, { headers: this.getHeaders() });
+  // --- OBTENER AUDITORÍA CON FILTROS ---
+  obtenerAuditoria(filtros?: any): Observable<any> {
+    return this.http.get(`${this.apiUrl}/audit`, { 
+      headers: this.getHeaders(),
+      params: filtros || {} 
+    });
   }
-
   // --- MÉTODOS DE MODERACIÓN (FILTRO DE PALABRAS) ---
   obtenerPalabras(): Observable<string[]> {
     return this.http.get<string[]>(`${this.apiUrl}/moderation/words`, { headers: this.getHeaders() });

@@ -22,9 +22,10 @@ export class AdminComponent implements OnInit {
 
   // --- VARIABLES DE MODERACIÓN ---
   subVistaModeracion: 'posts' | 'palabras' = 'posts';
- palabrasProhibidas: string[] = []; // Ya no tiene datos quemados
+  palabrasProhibidas: string[] = []; // Ya no tiene datos quemados
   nuevaPalabra: string = ''; // Para el input del formulario
   publicacionesModeracion: any[] = []; // Aquí guardarda los posts reportados
+
 
   constructor(
     private authService: AuthService, 
@@ -148,7 +149,7 @@ export class AdminComponent implements OnInit {
     }
   }
 
-  filtrosAudit = { usuario_id: '', accion: '', fecha: '' };
+  //filtrosAudit = { usuario_id: '', accion: '', fecha: '' };
 
   aplicarFiltros() {
   this.adminService.obtenerAuditoriaFiltrada(this.filtrosAudit).subscribe(data => {
@@ -163,6 +164,25 @@ export class AdminComponent implements OnInit {
       this.cargarPalabras();
       this.cargarPublicacionesModeracion(); // <-- Cargamos los posts
     }
+  }
+  
+  // --- VARIABLES PARA FILTROS DE AUDITORÍA ---
+  filtrosAudit = {
+    usuario_id: '',
+    accion: '',
+    fecha: ''
+  };
+
+  aplicarFiltrosAuditoria() {
+    this.adminService.obtenerAuditoria(this.filtrosAudit).subscribe({
+      next: (data) => this.logsAuditoria = data,
+      error: (err) => console.error('Error al filtrar auditoría:', err)
+    });
+  }
+
+  limpiarFiltrosAuditoria() {
+    this.filtrosAudit = { usuario_id: '', accion: '', fecha: '' };
+    this.cargarAuditoria(); // Vuelve a cargar todo sin filtros
   }
 
   cerrarSesion() {
