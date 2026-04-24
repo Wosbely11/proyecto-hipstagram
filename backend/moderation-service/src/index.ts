@@ -1,6 +1,8 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
-import pool from './db';
+import fs from 'fs';
+import path from 'path';
+import verificarToken, { AuthRequest } from './authMiddleware';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -9,41 +11,66 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Definimos qué esperamos recibir
-interface ModerationRequest {
-    hashtags: string[];
-    publicacion_id: string;
-}
+// Ruta donde se guardará nuestro archivo JSON físico
+const FILE_PATH = path.join(__dirname, 'bannedWords.json');
 
-const BAN_LIST: string[] = ['spam', 'ofensivo', 'ilegal'];
+// Función ayudante: Lee el archivo JSON
+const readWords = (): string[] => {
+    // Si el archivo no existe, lo creamos con algunas palabras de ejemplo
+    if (!fs.existsSync(FILE_PATH)) {
+        fs.writeFileSync(FILE_PATH, JSON.stringify(['spam', 'fraude', 'insulto_ejemplo']));
+    }
+    const data = fs.readFileSync(FILE_PATH, 'utf-8');
+    return JSON.parse(data);
+};
 
-app.post('/validar-hashtags', async (req: Request, res: Response) => {
-    const { hashtags, publicacion_id }: ModerationRequest = req.body;
+// Función ayudante: Escribe en el archivo JSON
+const writeWords = (words: string[]) => {
+    fs.writeFileSync(FILE_PATH, JSON.stringify(words, null, 2));
+};
+
+// --- RUTA: OBTENER PALABRAS ---
+app.get('/words', verificarToken, (req: AuthRequest, res: Response) => {
+    if (req.user?.rol !== 'ADMIN') return res.status(403).json({ message: "Acceso denegado" });
+    res.json(readWords());
+});
+
+// --- RUTA: AGREGAR PALABRA ---
+app.post('/words', verificarToken, (req: AuthRequest, res: Response) => {
+    if (req.user?.rol !== 'ADMIN') return res.status(403).json({ message: "Acceso denegado" });
     
-    if (!hashtags || !publicacion_id) {
-        return res.status(400).json({ error: "Faltan datos para la moderación" });
-    }
+    const { palabra } = req.body;
+    if (!palabra) return res.status(400).json({ message: "La palabra es requerida" });
+    
+    const words = readWords();
+    
+    // Antes: const lowerWord = palabra.toLowerCase().trim();
+    const lowerWord = String(palabra).toLowerCase().trim();//limpia la palabra
 
-    const tieneProhibidos = hashtags.some(tag => BAN_LIST.includes(tag.toLowerCase()));
-
-    try {
-        if (tieneProhibidos) {
-            await pool.query(
-                "UPDATE publicaciones SET estado_moderacion = 'BLOQUEADO' WHERE id = $1",
-                [publicacion_id]
-            );
-            console.log(`🚫 Post ${publicacion_id} bloqueado por contenido inapropiado.`);
-            return res.json({ aprobado: false, message: "Contenido bloqueado por hashtags prohibidos" });
-        }
-        
-        res.json({ aprobado: true });
-    } catch (err: any) {
-        console.error("❌ Error en Moderación:", err.message);
-        res.status(500).send("Error en el proceso de moderación");
+    // Evitamos duplicados
+    if (!words.includes(lowerWord)) {
+        words.push(lowerWord);
+        writeWords(words);
     }
+    res.json({ message: "Palabra agregada", palabras: words });
+});
+
+// --- RUTA: ELIMINAR PALABRA ---
+app.delete('/words/:word', verificarToken, (req: AuthRequest, res: Response) => {
+    if (req.user?.rol !== 'ADMIN') return res.status(403).json({ message: "Acceso denegado" });
+    
+    // Antes: const wordToDelete = req.params.word.toLowerCase();
+    const wordToDelete = String(req.params.word).toLowerCase();
+    let words = readWords();
+    
+    // Filtramos la lista para quitar la palabra seleccionada
+    words = words.filter(w => w !== wordToDelete);
+    writeWords(words);
+    
+    res.json({ message: "Palabra eliminada", palabras: words });
 });
 
 const PORT = process.env.PORT || 3008;
 app.listen(PORT, () => {
-    console.log(`🛡️ Moderation-Service en TS corriendo en puerto ${PORT}`);
+    console.log(`🛡️ Moderation-Service corriendo en puerto ${PORT}`);
 });

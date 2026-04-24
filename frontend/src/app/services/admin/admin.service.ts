@@ -49,4 +49,17 @@ export class AdminService {
     return this.http.get(`${this.apiUrl}/audit`, { headers: this.getHeaders() });
   }
 
+  // --- MÉTODOS DE MODERACIÓN (FILTRO DE PALABRAS) ---
+  obtenerPalabras(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiUrl}/moderation/words`, { headers: this.getHeaders() });
+  }
+
+  agregarPalabra(palabra: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/moderation/words`, { palabra }, { headers: this.getHeaders() });
+  }
+
+  eliminarPalabra(palabra: string): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/moderation/words/${palabra}`, { headers: this.getHeaders() });
+  }
+
 }

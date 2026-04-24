@@ -22,7 +22,7 @@ export class AdminComponent implements OnInit {
 
   // --- VARIABLES DE MODERACIÓN ---
   subVistaModeracion: 'posts' | 'palabras' = 'posts';
-  palabrasProhibidas: string[] = ['spam', 'insulto_ejemplo', 'fraude']; // Datos de prueba (luego vendrán del backend)
+ palabrasProhibidas: string[] = []; // Ya no tiene datos quemados
   nuevaPalabra: string = ''; // Para el input del formulario
   publicacionesModeracion: any[] = []; // Aquí guardarda los posts reportados
 
@@ -98,13 +98,37 @@ export class AdminComponent implements OnInit {
     });
   }
 
+
   cambiarVista(vista: 'usuarios' | 'auditoria' | 'moderacion') {
     this.vistaActual = vista;
-    
-    // Si entramos a la vista de auditoría, cargamos los datos
-    if (vista === 'auditoria') {
-      this.cargarAuditoria();
-    }
+    if (vista === 'auditoria') this.cargarAuditoria();
+    if (vista === 'moderacion') this.cargarPalabras(); //nueva funcion
+  }
+
+  cargarPalabras() {
+    this.adminService.obtenerPalabras().subscribe({
+      next: (data) => this.palabrasProhibidas = data,
+      error: (err) => console.error('Error al cargar palabras:', err)
+    });
+  }
+
+  agregarNuevaPalabra() {
+    if (!this.nuevaPalabra.trim()) return; // No agregar si está vacío
+
+    this.adminService.agregarPalabra(this.nuevaPalabra).subscribe({
+      next: (res) => {
+        this.palabrasProhibidas = res.palabras; // El backend nos devuelve la lista actualizada
+        this.nuevaPalabra = ''; // Limpiamos el input
+      },
+      error: (err) => console.error('Error al agregar palabra:', err)
+    });
+  }
+
+  quitarPalabra(palabra: string) {
+    this.adminService.eliminarPalabra(palabra).subscribe({
+      next: (res) => this.palabrasProhibidas = res.palabras,
+      error: (err) => console.error('Error al eliminar palabra:', err)
+    });
   }
 
   cerrarSesion() {
