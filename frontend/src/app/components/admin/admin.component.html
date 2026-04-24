@@ -156,10 +156,92 @@
       </div>
 
       <div *ngIf="vistaActual === 'moderacion'" class="animate-fade-in">
-        <h2 class="text-3xl font-bold text-gray-800 mb-6">Moderación de Contenido</h2>
-        <div class="bg-white p-10 rounded-xl shadow-sm border border-gray-200 flex items-center justify-center text-gray-400">
-          <p>El panel de moderación se cargará aquí...</p>
+        
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+          <h2 class="text-3xl font-bold text-gray-800">Centro de Moderación</h2>
+          
+          <div class="flex bg-gray-200 p-1 rounded-lg self-start">
+            <button (click)="subVistaModeracion = 'posts'" 
+                    class="px-4 py-2 text-sm font-bold rounded-md transition-all duration-200"
+                    [ngClass]="subVistaModeracion === 'posts' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+              Publicaciones
+            </button>
+            <button (click)="subVistaModeracion = 'palabras'" 
+                    class="px-4 py-2 text-sm font-bold rounded-md transition-all duration-200"
+                    [ngClass]="subVistaModeracion === 'palabras' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'">
+              Filtro de Palabras
+            </button>
+          </div>
         </div>
+
+        <div *ngIf="subVistaModeracion === 'posts'" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-200">
+                <th class="p-4 font-semibold">Post / Contenido</th>
+                <th class="p-4 font-semibold">Autor</th>
+                <th class="p-4 font-semibold text-center">Estado</th>
+                <th class="p-4 font-semibold text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr class="hover:bg-gray-50 transition-colors">
+                <td class="p-4">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 bg-gray-200 rounded-md overflow-hidden flex-shrink-0">
+                      <div class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-500 text-xs">IMG</div>
+                    </div>
+                    <div>
+                      <p class="text-sm text-gray-800 font-medium line-clamp-2">"Este es un ejemplo de un post reportado que necesita revisión por parte del administrador."</p>
+                      <p class="text-xs text-gray-400 mt-1">Reportado hace 2 horas</p>
+                    </div>
+                  </div>
+                </td>
+                <td class="p-4 text-sm text-gray-600 font-mono">user_123</td>
+                <td class="p-4 text-center">
+                  <span class="px-2 py-1 text-xs font-bold rounded-md bg-yellow-100 text-yellow-700">En Revisión</span>
+                </td>
+                <td class="p-4 text-center space-x-3">
+                  <button class="text-xs text-green-600 hover:text-green-800 font-bold underline" title="Aprobar post">Aprobar</button>
+                  <button class="text-xs text-red-500 hover:text-red-700 font-bold underline" title="Eliminar definitivamente">Eliminar</button>
+                </td>
+              </tr>
+              </tbody>
+          </table>
+          <div *ngIf="publicacionesModeracion.length === 0" class="p-8 text-center text-gray-500">
+            Cargando cola de moderación... (Datos de prueba)
+          </div>
+        </div>
+
+        <div *ngIf="subVistaModeracion === 'palabras'" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 animate-fade-in">
+          <h3 class="text-lg font-bold text-gray-800 mb-2">Lista Negra de Palabras y Hashtags</h3>
+          <p class="text-sm text-gray-500 mb-6">Cualquier publicación que contenga estas palabras será bloqueada o enviada a revisión automáticamente.</p>
+          
+          <div class="flex gap-3 mb-6 max-w-md">
+            <input type="text" [(ngModel)]="nuevaPalabra" placeholder="Ej: fraude, #spam..." 
+                   class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <button class="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">
+              Añadir
+            </button>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <div *ngFor="let palabra of palabrasProhibidas" 
+                 class="group flex items-center bg-gray-100 border border-gray-200 rounded-full px-3 py-1">
+              <span class="text-sm text-gray-700 font-medium">{{ palabra }}</span>
+              <button class="ml-2 text-gray-400 hover:text-red-500 focus:outline-none transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div *ngIf="palabrasProhibidas.length === 0" class="text-sm text-gray-400 italic">
+              La lista negra está vacía.
+            </div>
+          </div>
+        </div>
+
       </div>
 
     </div>

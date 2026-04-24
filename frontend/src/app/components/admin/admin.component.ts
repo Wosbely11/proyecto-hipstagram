@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth/auth.service';
 import { AdminService } from '../../services/admin/admin.service'; // <-- Importamos el servicio
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.css'
 })
@@ -18,6 +19,12 @@ export class AdminComponent implements OnInit {
   // Arreglo para guardar los usuarios que nos manda el backend
   usuarios: any[] = []; 
   logsAuditoria: any[] = [];
+
+  // --- VARIABLES DE MODERACIÓN ---
+  subVistaModeracion: 'posts' | 'palabras' = 'posts';
+  palabrasProhibidas: string[] = ['spam', 'insulto_ejemplo', 'fraude']; // Datos de prueba (luego vendrán del backend)
+  nuevaPalabra: string = ''; // Para el input del formulario
+  publicacionesModeracion: any[] = []; // Aquí guardarda los posts reportados
 
   constructor(
     private authService: AuthService, 
