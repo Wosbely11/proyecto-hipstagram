@@ -98,13 +98,6 @@ export class AdminComponent implements OnInit {
     });
   }
 
-
-  cambiarVista(vista: 'usuarios' | 'auditoria' | 'moderacion') {
-    this.vistaActual = vista;
-    if (vista === 'auditoria') this.cargarAuditoria();
-    if (vista === 'moderacion') this.cargarPalabras(); //nueva funcion
-  }
-
   cargarPalabras() {
     this.adminService.obtenerPalabras().subscribe({
       next: (data) => this.palabrasProhibidas = data,
@@ -129,6 +122,39 @@ export class AdminComponent implements OnInit {
       next: (res) => this.palabrasProhibidas = res.palabras,
       error: (err) => console.error('Error al eliminar palabra:', err)
     });
+  }
+
+  cargarPublicacionesModeracion() {
+    this.adminService.obtenerPublicacionesModeracion().subscribe({
+      next: (data) => this.publicacionesModeracion = data,
+      error: (err) => console.error('Error al cargar posts para moderación:', err)
+    });
+  }
+
+  cambiarEstadoPost(post: any, nuevoEstado: 'APROBADO' | 'BLOQUEADO') {
+    const accion = nuevoEstado === 'APROBADO' ? 'APROBAR' : 'BLOQUEAR';
+    
+    if (confirm(`¿Estás seguro de que deseas ${accion} esta publicación?`)) {
+      this.adminService.cambiarEstadoPublicacion(post.id, nuevoEstado).subscribe({
+        next: (res) => {
+          post.estado_moderacion = nuevoEstado; // Actualiza la tabla visualmente
+          console.log(res.message);
+        },
+        error: (err) => {
+          console.error('Error al cambiar estado del post:', err);
+          alert('Hubo un error al aplicar la moderación.');
+        }
+      });
+    }
+  }
+
+  cambiarVista(vista: 'usuarios' | 'auditoria' | 'moderacion') {
+    this.vistaActual = vista;
+    if (vista === 'auditoria') this.cargarAuditoria();
+    if (vista === 'moderacion') {
+      this.cargarPalabras();
+      this.cargarPublicacionesModeracion(); // <-- Cargamos los posts
+    }
   }
 
   cerrarSesion() {

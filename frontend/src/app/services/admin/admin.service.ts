@@ -62,4 +62,15 @@ export class AdminService {
     return this.http.delete(`${this.apiUrl}/moderation/words/${palabra}`, { headers: this.getHeaders() });
   }
 
+  // --- MÉTODOS DE MODERACIÓN (PUBLICACIONES) ---
+  obtenerPublicacionesModeracion(): Observable<any> {
+    // Apuntamos al post-service a través del API Gateway
+    return this.http.get(`${this.apiUrl}/posts/admin/moderation`, { headers: this.getHeaders() });
+  }
+
+  cambiarEstadoPublicacion(postId: string, nuevoEstado: string): Observable<any> {
+    const body = { estado: nuevoEstado };
+    return this.http.put(`${this.apiUrl}/posts/admin/moderation/${postId}`, body, { headers: this.getHeaders() });
+  }
+
 }

@@ -166,5 +166,54 @@ app.delete('/delete/:id', verificarToken, async (req: AuthRequest, res: Response
     }
 });
 
+// --- RUTAS DE MODERACIÓN (Solo ADMIN) ---
+
+// 1. Obtener todas las publicaciones para la tabla del panel
+app.get('/admin/moderation', verificarToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.rol !== 'ADMIN') return res.status(403).json({ message: "Acceso denegado" });
+
+    try {
+        // Hacemos un JOIN para traer el nombre del usuario junto con la publicación
+        const result = await pool.query(`
+            SELECT p.id, p.url_imagen, p.descripcion, p.fecha_publicacion, p.estado_moderacion, u.username
+            FROM publicaciones p
+            JOIN usuarios u ON p.usuario_id = u.id
+            ORDER BY p.fecha_publicacion DESC
+        `);
+        res.json(result.rows);
+    } catch (err: any) {
+        console.error("Error al obtener publicaciones:", err);
+        res.status(500).json({ error: "Error al obtener el historial de publicaciones" });
+    }
+});
+
+// 2. Cambiar el estado de una publicación (Aprobar / Bloquear)
+app.put('/admin/moderation/:id', verificarToken, async (req: AuthRequest, res: Response) => {
+    if (req.user?.rol !== 'ADMIN') return res.status(403).json({ message: "Acceso denegado" });
+    
+    const { estado } = req.body; // Recibimos 'APROBADO' o 'BLOQUEADO'
+    const postId = req.params.id;
+
+    try {
+        await pool.query(
+            "UPDATE publicaciones SET estado_moderacion = $1 WHERE id = $2",
+            [estado, postId]
+        );
+
+        res.json({ message: `Publicación marcada como ${estado}` });
+
+        // Guardamos el movimiento en la auditoría
+        axios.post('http://audit-service:3003/log', {
+            usuario_id: req.user.id,
+            accion: `POST_${estado}`, // Ej: POST_BLOQUEADO
+            detalles: `Admin cambió el estado del post ${postId} a ${estado}`,
+            ip_origen: req.ip
+        }).catch(err => console.error("Error enviando a auditoría:", err.message));
+
+    } catch (err: any) {
+        res.status(500).json({ error: "Error al actualizar el estado de la publicación" });
+    }
+});
+
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => console.log(`📸 Post-Service corriendo en puerto ${PORT}`));

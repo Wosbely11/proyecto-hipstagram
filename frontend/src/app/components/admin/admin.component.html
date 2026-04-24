@@ -185,25 +185,43 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-              <tr class="hover:bg-gray-50 transition-colors">
+              <tr *ngFor="let post of publicacionesModeracion" class="hover:bg-gray-50 transition-colors">
                 <td class="p-4">
                   <div class="flex items-center space-x-3">
                     <div class="w-12 h-12 bg-gray-200 rounded-md overflow-hidden shrink-0">
-                      <div class="w-full h-full bg-gray-300 flex items-center justify-center text-gray-500 text-xs">IMG</div>
+                      <img [src]="post.url_imagen" alt="Post" class="w-full h-full object-cover" 
+                           onerror="this.src='https://via.placeholder.com/150?text=Error'">
                     </div>
                     <div>
-                      <p class="text-sm text-gray-800 font-medium line-clamp-2">"Este es un ejemplo de un post reportado que necesita revisión por parte del administrador."</p>
-                      <p class="text-xs text-gray-400 mt-1">Reportado hace 2 horas</p>
+                      <p class="text-sm text-gray-800 font-medium line-clamp-2" [title]="post.descripcion">
+                        {{ post.descripcion || 'Sin descripción' }}
+                      </p>
+                      <p class="text-xs text-gray-400 mt-1">{{ post.fecha_publicacion | date:'short' }}</p>
                     </div>
                   </div>
                 </td>
-                <td class="p-4 text-sm text-gray-600 font-mono">user_123</td>
+                <td class="p-4 text-sm text-gray-600 font-bold">@{{ post.username }}</td>
                 <td class="p-4 text-center">
-                  <span class="px-2 py-1 text-xs font-bold rounded-md bg-yellow-100 text-yellow-700">En Revisión</span>
+                  <span class="px-2 py-1 text-xs font-bold rounded-md"
+                        [ngClass]="{
+                          'bg-yellow-100 text-yellow-700': post.estado_moderacion === 'PENDIENTE',
+                          'bg-green-100 text-green-700': post.estado_moderacion === 'APROBADO',
+                          'bg-red-100 text-red-700': post.estado_moderacion === 'BLOQUEADO'
+                        }">
+                    {{ post.estado_moderacion }}
+                  </span>
                 </td>
                 <td class="p-4 text-center space-x-3">
-                  <button class="text-xs text-green-600 hover:text-green-800 font-bold underline" title="Aprobar post">Aprobar</button>
-                  <button class="text-xs text-red-500 hover:text-red-700 font-bold underline" title="Eliminar definitivamente">Eliminar</button>
+                  <button *ngIf="post.estado_moderacion !== 'APROBADO'" 
+                          (click)="cambiarEstadoPost(post, 'APROBADO')"
+                          class="text-xs text-green-600 hover:text-green-800 font-bold underline" title="Aprobar post">
+                    Aprobar
+                  </button>
+                  <button *ngIf="post.estado_moderacion !== 'BLOQUEADO'" 
+                          (click)="cambiarEstadoPost(post, 'BLOQUEADO')"
+                          class="text-xs text-red-500 hover:text-red-700 font-bold underline" title="Bloquear post">
+                    Bloquear
+                  </button>
                 </td>
               </tr>
               </tbody>
