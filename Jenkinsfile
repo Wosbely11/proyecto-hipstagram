@@ -1,6 +1,13 @@
 pipeline {
     agent any // Se ejecuta en cualquier nodo disponible de Jenkins
 
+    environment {
+        // Jenkins extrae las llaves de su bóveda y las guarda en estas variables
+        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_KEY')
+        AWS_REGION            = 'us-east-1' 
+    }
+
     stages {
         stage('1. Obtener Código') {
             steps {
