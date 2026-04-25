@@ -31,18 +31,20 @@ services:
       - db
       - audit-service
 
-  # 3. Post Service (Puerto 3002)
+# 3. Post Service (Puerto 3002)
   post-service:
     build: ./backend/post-service
     container_name: post_service
-    #ports:
-    #  - "3002:3002"
-    env_file: ./backend/post-service/.env
+    env_file: ./backend/post-service/.env # <--- Se queda para uso local
     volumes:
       - ./backend/post-service/uploads:/app/uploads
     environment:
       - DB_HOST=db
       - DB_PORT=5432
+      # --- Variables inyectadas por Jenkins (Sobreescriben el env_file si existen en Jenkins) ---
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
     depends_on:
       - db
       - audit-service
@@ -104,13 +106,15 @@ services:
   media-service:
     build: ./backend/media-service
     container_name: media_service
-    #ports:
-    #  - "3007:3007"
-    env_file: ./backend/media-service/.env
-    environment:                 # <--- Añadido
+    env_file: ./backend/media-service/.env # <--- Se queda para uso local
+    environment:                 
       - DB_HOST=db
       - DB_PORT=5432
-    depends_on:                  # <--- Añadido
+      # --- Variables inyectadas por Jenkins ---
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+    depends_on:                  
       - db
 
   # 9. Moderation Service (Puerto 3008)
