@@ -42,9 +42,9 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       # --- Variables inyectadas por Jenkins (Sobreescriben el env_file si existen en Jenkins) ---
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
+      #- AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      #- AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      #- AWS_REGION=${AWS_REGION}
     depends_on:
       - db
       - audit-service
@@ -111,9 +111,9 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       # --- Variables inyectadas por Jenkins ---
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
+      #- AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      #- AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      #- AWS_REGION=${AWS_REGION}
     depends_on:                  
       - db
 
