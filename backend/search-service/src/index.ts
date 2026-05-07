@@ -43,6 +43,9 @@ app.get('/posts', async (req, res: Response) => {
             FROM publicaciones p
             LEFT JOIN usuarios u ON p.usuario_id = u.id
             WHERE p.descripcion ILIKE $1
+               OR EXISTS (
+                   SELECT 1 FROM comentarios c WHERE c.publicacion_id = p.id AND c.texto ILIKE $1
+               )
             ORDER BY p.fecha_publicacion DESC
         `, [searchQuery]);
 

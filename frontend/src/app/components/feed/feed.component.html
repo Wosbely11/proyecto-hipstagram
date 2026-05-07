@@ -35,10 +35,11 @@
       <div class="flex items-center space-x-4 mb-4">
         <div class="w-10 h-10 bg-linear-to-r from-hipstagram-primary to-hipstagram-light rounded-full flex shrink-0 items-center justify-center text-white font-bold text-sm">Yo</div>
         
-        <input 
-          type="text" 
+        <input
+          type="text"
           [(ngModel)]="nuevoTexto"
-          placeholder="¿Qué estás pensando? #hashtag" 
+          maxlength="128"
+          placeholder="¿Qué estás pensando? #hashtag"
           class="w-full bg-gray-100 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-hipstagram-secondary transition-all">
       </div>
 
@@ -105,7 +106,8 @@
         
         <div class="mt-2 border-t border-gray-100 pt-3">
           <div class="flex items-center space-x-2">
-            <input #comentarioInput type="text" placeholder="Añadir un comentario..." 
+            <input #comentarioInput type="text" placeholder="Añadir un comentario..."
+                   maxlength="128"
                    class="flex-1 text-xs bg-gray-50 rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-hipstagram-primary border border-transparent focus:border-gray-200">
             <button (click)="enviarComentario(post.id, comentarioInput.value); comentarioInput.value=''" 
                     class="text-hipstagram-primary font-bold text-xs px-2 hover:text-hipstagram-dark transition-colors">

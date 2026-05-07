@@ -45,6 +45,13 @@ app.post('/comentar', verificarToken, async (req: AuthRequest, res: Response) =>
     const { publicacion_id, texto } = req.body;
     const usuario_id = req.user?.id;
 
+    if (!texto || texto.trim().length === 0) {
+        return res.status(400).json({ error: "El comentario no puede estar vacío" });
+    }
+    if (texto.length > 128) {
+        return res.status(400).json({ error: "El comentario no puede superar los 128 caracteres" });
+    }
+
     console.log(`📝 Recibiendo comentario: "${texto}" para post: ${publicacion_id}`);
 
     try {

@@ -38,10 +38,14 @@ export const login = async (req: Request, res: Response) => {
         if (result.rows.length === 0) return res.status(401).json({ message: "Credenciales incorrectas" });
 
         const user: IUser = result.rows[0];
+
+        if (!user.activo) {
+            return res.status(403).json({ message: "Tu cuenta ha sido deshabilitada. Contacta al administrador." });
+        }
+
         const validPassword = await bcrypt.compare(password, user.password_hash);
-        
+
         if (!validPassword) {
-            // Opcional: Auditar intentos fallidos
             return res.status(401).json({ message: "Credenciales incorrectas" });
         }
 

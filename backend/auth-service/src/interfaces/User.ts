@@ -4,4 +4,5 @@ export interface IUser {
     email: string;
     password_hash: string;
     rol: 'ADMIN' | 'USER';
+    activo: boolean;
 }
