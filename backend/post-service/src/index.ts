@@ -24,8 +24,14 @@ app.use('/uploads', express.static('uploads'));
 
 
 // Configuración de Multer
+const useS3 = !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_BUCKET_NAME);
 
-const storage = multer.memoryStorage();
+const storage = useS3
+    ? multer.memoryStorage()
+    : multer.diskStorage({
+        destination: 'uploads/',
+        filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+    });
 const upload = multer({ storage });
 
 
@@ -37,17 +43,22 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
     
     if (!req.file) return res.status(400).send("No se subió ninguna imagen");
 
-    const params = {
-        Bucket: process.env.AWS_BUCKET_NAME || '',
-        Key: `${Date.now()}-${req.file.originalname}`,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype
-    };
-
     try {
-        // 1. Subir a AWS
-        const s3Response = await s3.upload(params).promise();
-        const imageUrl = s3Response.Location;
+        // 1. Subir a S3 o guardar localmente
+        let imageUrl: string;
+        if (useS3) {
+            const params = {
+                Bucket: process.env.AWS_BUCKET_NAME!,
+                Key: `${Date.now()}-${req.file.originalname}`,
+                Body: req.file.buffer,
+                ContentType: req.file.mimetype
+            };
+            const s3Response = await s3.upload(params).promise();
+            imageUrl = s3Response.Location;
+        } else {
+            const filename = (req.file as Express.Multer.File & { filename: string }).filename;
+            imageUrl = `http://localhost:8080/posts/uploads/${filename}`;
+        }
 
         // 2. LÓGICA DE MODERACIÓN AUTOMÁTICA
         let estadoInicial = 'APROBADO'; // Por defecto

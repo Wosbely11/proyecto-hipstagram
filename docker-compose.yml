@@ -14,7 +14,7 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      #- ./init.sql:/docker-entrypoint-initdb.d/init.sql # Para crear las tablas al inicio
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Para crear las tablas al inicio
 
   # 2. Auth Service (Puerto 3001)
   auth-service:
@@ -35,16 +35,12 @@ services:
   post-service:
     build: ./backend/post-service
     container_name: post_service
-    env_file: ./backend/post-service/.env # <--- Se queda para uso local
+    env_file: ./backend/post-service/.env
     volumes:
       - ./backend/post-service/uploads:/app/uploads
     environment:
       - DB_HOST=db
       - DB_PORT=5432
-      # --- Variables inyectadas por Jenkins (Sobreescriben el env_file si existen en Jenkins) ---
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
     depends_on:
       - db
       - audit-service
@@ -61,6 +57,7 @@ services:
     environment:
       - DB_HOST=db
       - DB_PORT=5432
+      - PORT=3003
 
   # 5. Interactions Service (Puerto 3004)
   interactions-service:
@@ -69,9 +66,10 @@ services:
     #ports:
     #  - "3004:3004"
     env_file: ./backend/interactions-service/.env
-    environment:                 # <--- Añadido
-      - DB_HOST=db               # <--- Forzamos la conexión a Docker
+    environment:
+      - DB_HOST=db
       - DB_PORT=5432
+      - PORT=3004
     depends_on:
       - db
       - audit-service
@@ -83,9 +81,10 @@ services:
     #ports:
     #  - "3005:3005"
     env_file: ./backend/search-service/.env
-    environment:                 # <--- Añadido
+    environment:
       - DB_HOST=db
       - DB_PORT=5432
+      - PORT=3005
     depends_on:
       - db
 
@@ -101,20 +100,18 @@ services:
     environment:
       - DB_HOST=db
       - DB_PORT=5432
+      - PORT=3006
 
   # 8. Media Service - S3 (Puerto 3007)
   media-service:
     build: ./backend/media-service
     container_name: media_service
-    env_file: ./backend/media-service/.env # <--- Se queda para uso local
-    environment:                 
+    env_file: ./backend/media-service/.env
+    environment:
       - DB_HOST=db
       - DB_PORT=5432
-      # --- Variables inyectadas por Jenkins ---
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - AWS_REGION=${AWS_REGION}
-    depends_on:                  
+      - PORT=3007
+    depends_on:
       - db
 
   # 9. Moderation Service (Puerto 3008)
@@ -124,9 +121,10 @@ services:
     #ports:
     #  - "3008:3008"
     env_file: ./backend/moderation-service/.env
-    environment:                 # <--- Añadido
+    environment:
       - DB_HOST=db
       - DB_PORT=5432
+      - PORT=3008
     depends_on:
       - db
 
