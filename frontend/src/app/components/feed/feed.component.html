@@ -67,16 +67,25 @@
 
     <div *ngFor="let post of publicaciones" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       
-      <div class="p-4 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 bg-hipstagram-dark rounded-full flex items-center justify-center text-white font-bold text-xs uppercase">
+      <div class="p-4 flex items-center justify-between gap-2">
+        <div class="flex items-center space-x-3 min-w-0">
+          <div class="w-9 h-9 bg-hipstagram-dark rounded-full flex items-center justify-center text-white font-bold text-xs uppercase shrink-0">
             {{ post.username?.charAt(0) || 'U' }}
           </div>
-          <div>
+          <div class="min-w-0">
             <p class="font-bold text-sm text-hipstagram-dark leading-tight">{{ post.username || 'Usuario Anónimo' }}</p>
             <p class="text-xs text-gray-400">{{ post.fecha_publicacion | date:'short' }}</p>
           </div>
         </div>
+        <button
+          *ngIf="esMiPublicacion(post)"
+          type="button"
+          (click)="eliminarPost(post.id)"
+          title="Eliminar"
+          class="shrink-0 text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+          aria-label="Eliminar publicación">
+          <span class="text-xl leading-none">🗑️</span>
+        </button>
       </div>
 
       <div class="w-full bg-gray-100 flex items-center justify-center">

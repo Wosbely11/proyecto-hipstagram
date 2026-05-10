@@ -50,4 +50,9 @@ export class PostService {
     return this.http.get(`${this.apiUrl}/search/posts?q=${terminoSeguro}`);
   }
 
+  eliminarPost(postId: string): Observable<any> {
+    const id = encodeURIComponent(String(postId).trim());
+    return this.http.delete(`${this.apiUrl}/posts/delete/${id}`);
+  }
+
 }
