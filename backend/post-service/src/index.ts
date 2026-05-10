@@ -156,11 +156,16 @@ app.get('/', async (req, res) => {
 // --- RUTA: ELIMINAR POST ---
 app.delete('/delete/:id', verificarToken, async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const usuario_id = req.user?.id;
+    const usuario_id = req.user?.id != null ? String(req.user.id) : undefined;
+    if (!usuario_id) {
+        return res.status(401).json({ message: "Usuario no identificado en el token" });
+    }
 
     try {
         const result = await pool.query(
-            "DELETE FROM publicaciones WHERE id = $1 AND usuario_id = $2 RETURNING *",
+            `DELETE FROM publicaciones
+             WHERE id = $1::uuid AND usuario_id = $2::uuid
+             RETURNING *`,
             [id, usuario_id]
         );
 
