@@ -146,5 +146,9 @@ buscar() {
       }
     });
   }
-  
+
+  limpiarHashtags(texto: string): string {
+    return texto.replace(/#\S+/g, '').trim();
+  }
+
 }

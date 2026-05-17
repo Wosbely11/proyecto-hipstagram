@@ -123,28 +123,35 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
 app.get('/', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT 
-                p.id, 
-                p.usuario_id, 
-                p.url_imagen, 
-                p.descripcion, 
-                p.fecha_publicacion, 
+            SELECT
+                p.id,
+                p.usuario_id,
+                p.url_imagen,
+                p.descripcion,
+                p.fecha_publicacion,
                 u.username,
-                -- Subconsulta para sumar likes sin romper el GROUP BY
                 COALESCE((SELECT SUM(tipo_voto) FROM votos WHERE publicacion_id = p.id), 0) AS likes,
-                -- Subconsulta para traer los comentarios en formato de arreglo JSON
                 COALESCE((
                     SELECT json_agg(json_build_object('texto', c.texto, 'username', cu.username))
                     FROM comentarios c
                     JOIN usuarios cu ON c.usuario_id = cu.id
                     WHERE c.publicacion_id = p.id
-                ), '[]'::json) AS comentarios
+                ), '[]'::json) AS comentarios,
+                COALESCE((
+                    SELECT json_agg(h.nombre ORDER BY h.nombre)
+                    FROM publicaciones_hashtags ph
+                    JOIN hashtags h ON ph.hashtag_id = h.id
+                    WHERE ph.publicacion_id = p.id
+                ), '[]'::json) AS hashtags
             FROM publicaciones p
             LEFT JOIN usuarios u ON p.usuario_id = u.id
-            WHERE p.estado_moderacion = 'APROBADO' -- <--- El filtro de moderación
-            ORDER BY p.fecha_publicacion DESC
+            WHERE p.estado_moderacion = 'APROBADO'
+            ORDER BY
+                EXISTS(SELECT 1 FROM publicaciones_hashtags WHERE publicacion_id = p.id) DESC,
+                COALESCE((SELECT SUM(tipo_voto) FROM votos WHERE publicacion_id = p.id), 0) DESC,
+                p.fecha_publicacion DESC
         `);
-        
+
         res.json(result.rows);
     } catch (err: any) {
         console.error("Error al obtener feed:", err);
