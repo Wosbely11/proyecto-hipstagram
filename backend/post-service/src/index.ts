@@ -118,10 +118,14 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
     }
 });
 
-
-// --- RUTA: OBTENER TODOS LOS POSTS (FEED) ---
+// --- RUTA: OBTENER TODOS LOS POSTS (FEED PAGINADO) ---
 app.get('/', async (req, res) => {
     try {
+        // 1. Recibir parámetros de paginación
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+
         const result = await pool.query(`
             SELECT
                 p.id,
@@ -156,6 +160,122 @@ app.get('/', async (req, res) => {
     } catch (err: any) {
         console.error("Error al obtener feed:", err);
         res.status(500).json({ error: "No se pudo cargar el feed" });
+    }
+});
+
+// --- RUTA: MODO EXPLORAR (TOP LIKES PAGINADO) ---
+app.get('/explore', async (req, res) => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 15; // Explorar suele mostrar más imágenes
+        const offset = (page - 1) * limit;
+
+        const result = await pool.query(`
+            SELECT 
+                p.id, 
+                p.usuario_id, 
+                p.url_imagen, 
+                p.descripcion, 
+                p.fecha_publicacion, 
+                u.username,
+                COALESCE((SELECT SUM(tipo_voto) FROM votos WHERE publicacion_id = p.id), 0) AS likes
+            FROM publicaciones p
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            WHERE p.estado_moderacion = 'APROBADO'
+            ORDER BY 
+                likes DESC,               -- Orden exclusivo por popularidad
+                p.fecha_publicacion DESC
+            LIMIT $1 OFFSET $2
+        `, [limit, offset]);
+        
+        res.json({
+            page,
+            limit,
+            data: result.rows
+        });
+    } catch (err: any) {
+        console.error("Error al obtener explorar:", err);
+        res.status(500).json({ error: "No se pudo cargar explorar" });
+    }
+});
+
+// --- RUTA: OBTENER COMENTARIOS DE UN POST (PAGINADOS) ---
+app.get('/:id/comments', async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const offset = (page - 1) * limit;
+
+        // 1. Obtener los comentarios con el nombre del usuario
+        const result = await pool.query(`
+            SELECT c.texto, c.usuario_id, u.username
+            FROM comentarios c
+            JOIN usuarios u ON c.usuario_id = u.id
+            WHERE c.publicacion_id = $1::uuid
+            ORDER BY c.texto DESC -- Cambiar 'texto' por 'fecha' o 'id' si tu tabla comentarios tiene un campo de fecha o id serial
+            LIMIT $2 OFFSET $3
+        `, [postId, limit, offset]);
+
+        // 2. Contar el total para que Angular sepa si hay más páginas
+        const countResult = await pool.query(`SELECT COUNT(*) FROM comentarios WHERE publicacion_id = $1::uuid`, [postId]);
+        const total = parseInt(countResult.rows[0].count);
+
+        res.json({
+            page,
+            limit,
+            total,
+            data: result.rows
+        });
+    } catch (err: any) {
+        console.error("Error al obtener comentarios:", err);
+        res.status(500).json({ error: "No se pudieron cargar los comentarios" });
+    }
+});
+
+// --- RUTA: OBTENER PUBLICACIONES DE UN USUARIO ESPECÍFICO (PERFIL PAGINADO) ---
+app.get('/user/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        // Parámetros opcionales de paginación por si el usuario tiene muchas fotos
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 12; 
+        const offset = (page - 1) * limit;
+
+        // Consulta SQL limpia para extraer solo el contenido aprobado de este usuario
+        const result = await pool.query(`
+            SELECT 
+                p.id, 
+                p.usuario_id, 
+                p.url_imagen, 
+                p.descripcion, 
+                p.fecha_publicacion,
+                COALESCE((SELECT SUM(tipo_voto) FROM votos WHERE publicacion_id = p.id), 0) AS likes,
+                COALESCE((SELECT COUNT(*) FROM comentarios WHERE publicacion_id = p.id), 0) AS total_comentarios
+            FROM publicaciones p
+            WHERE p.usuario_id = $1::uuid AND p.estado_moderacion = 'APROBADO'
+            ORDER BY p.fecha_publicacion DESC
+            LIMIT $2 OFFSET $3
+        `, [userId, limit, offset]);
+
+        // Contamos el total para ayudarle al Frontend con el scroll o paginación
+        const countResult = await pool.query(`
+            SELECT COUNT(*) FROM publicaciones 
+            WHERE usuario_id = $1::uuid AND estado_moderacion = 'APROBADO'
+        `, [userId]);
+        
+        const total = parseInt(countResult.rows[0].count);
+
+        res.json({
+            page,
+            limit,
+            total,
+            data: result.rows
+        });
+    } catch (err: any) {
+        console.error("Error al obtener publicaciones del perfil:", err);
+        res.status(500).json({ error: "No se pudieron cargar las publicaciones del perfil" });
     }
 });
 
