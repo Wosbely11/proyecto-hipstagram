@@ -8,7 +8,8 @@ CREATE TABLE usuarios (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     rol VARCHAR(10) CHECK (rol IN ('ADMIN', 'USER')) DEFAULT 'USER',
-    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    refresh_token VARCHAR(500)
 );
 
 

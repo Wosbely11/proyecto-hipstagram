@@ -20,6 +20,12 @@ const s3 = new AWS.S3({
 const app = express();
 app.use(express.json());
 app.use(cors());
+// MIDDLEWARE PARA IMPRIMIR LA TRAZABILIDAD
+app.use((req, res, next) => {
+    const correlationId = req.headers['x-correlation-id'] || 'SIN-RASTREO';
+    console.log(`[TraceID: ${correlationId}] Ejecutando Post-Service: ${req.method} ${req.url}`);
+    next();
+});
 app.use('/uploads', express.static('uploads'));
 
 
@@ -43,13 +49,16 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
     
     if (!req.file) return res.status(400).send("No se subió ninguna imagen");
 
-    try {
+try {
+        // Generamos un nombre único para S3 usando la marca de tiempo y el nombre original del archivo
+        const s3FileName = `${Date.now()}-${req.file.originalname}`;
+
         // 1. Subir a S3 o guardar localmente
         let imageUrl: string;
         if (useS3) {
             const params = {
                 Bucket: process.env.AWS_BUCKET_NAME!,
-                Key: `${Date.now()}-${req.file.originalname}`,
+                Key: s3FileName, // <--- Usamos la variable aquí
                 Body: req.file.buffer,
                 ContentType: req.file.mimetype
             };
@@ -63,11 +72,19 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
         // 2. LÓGICA DE MODERACIÓN AUTOMÁTICA
         let estadoInicial = 'APROBADO'; // Por defecto
         try {
-            // AQUÍ ESTÁ LA MAGIA: Llamamos a la ruta /check correctamente
             const modResponse = await axios.post('http://moderation-service:3008/check', { 
-                text: descripcion 
+                text: descripcion,
+                imageUrl: imageUrl, 
+                key: s3FileName // <--- Usamos LA MISMA variable exacta aquí
+            }, {
+                headers: { 'x-correlation-id': req.headers['x-correlation-id'] || 'SIN-RASTREO' }
             });
+            
             estadoInicial = modResponse.data.clean ? 'APROBADO' : 'PENDIENTE';
+            
+            if (!modResponse.data.clean) {
+                console.log(`[TraceID: ${req.headers['x-correlation-id']}] Post marcado como PENDIENTE. Razón:`, modResponse.data.details);
+            }
         } catch (e: any) {
             console.error("⚠️ Error llamando a Moderación (Check):", e.message);
         }
@@ -79,7 +96,7 @@ app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequ
         );
         const nuevaPublicacion = result.rows[0];
 
-        // 4. LÓGICA DE HASHTAGS (Limpia)
+        // 4. LÓGICA DE HASHTAGS
         const palabras = (descripcion || '').split(' ');
         const hashtags = palabras
             .filter((word: string) => word.startsWith('#'))

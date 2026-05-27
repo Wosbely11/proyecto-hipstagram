@@ -5,4 +5,5 @@ export interface IUser {
     password_hash: string;
     rol: 'ADMIN' | 'USER';
     activo: boolean;
+    refresh_token?: string;
 }
