@@ -1,5 +1,4 @@
 
-
 services:
   # 1. Base de Datos PostgreSQL
   db:
@@ -14,27 +13,41 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # Para crear las tablas al inicio
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hipstagram_admin -d hipstagram_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # 2. Auth Service (Puerto 3001)
   auth-service:
     build: ./backend/auth-service
     container_name: auth_service
-    #ports:
-     # - "3001:3001"
+    restart: always
     environment:
       - DB_HOST=db
       - DB_PORT=5432
       - AUDIT_SERVICE_URL=http://audit-service:3003/log
     env_file: ./backend/auth-service/.env
     depends_on:
-      - db
-      - audit-service
+      db:
+        condition: service_healthy
+      audit-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
-# 3. Post Service (Puerto 3002)
+  # 3. Post Service (Puerto 3002)
   post-service:
     build: ./backend/post-service
     container_name: post_service
+    restart: always
     env_file: ./backend/post-service/.env
     volumes:
       - ./backend/post-service/uploads:/app/uploads
@@ -42,109 +55,171 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
     depends_on:
-      - db
-      - audit-service
+      db:
+        condition: service_healthy
+      audit-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # 4. Audit Service (Puerto 3003)
   audit-service:
     build: ./backend/audit-service
     container_name: audit_service
-    #ports:
-    #  - "3003:3003"
+    restart: always
     env_file: ./backend/audit-service/.env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - DB_HOST=db
       - DB_PORT=5432
       - PORT=3003
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # 5. Interactions Service (Puerto 3004)
   interactions-service:
     build: ./backend/interactions-service
     container_name: interactions_service
-    #ports:
-    #  - "3004:3004"
+    restart: always
     env_file: ./backend/interactions-service/.env
     environment:
       - DB_HOST=db
       - DB_PORT=5432
       - PORT=3004
     depends_on:
-      - db
-      - audit-service
+      db:
+        condition: service_healthy
+      audit-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # 6. Search Service (Puerto 3005)
   search-service:
     build: ./backend/search-service
     container_name: search_service
-    #ports:
-    #  - "3005:3005"
+    restart: always
     env_file: ./backend/search-service/.env
     environment:
       - DB_HOST=db
       - DB_PORT=5432
       - PORT=3005
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # 7. User Service (Puerto 3006)
   user-service:
     build: ./backend/user-service
     container_name: user_service
-    #ports:
-    #  - "3006:3006"
+    restart: always
     env_file: ./backend/user-service/.env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       - DB_HOST=db
       - DB_PORT=5432
       - PORT=3006
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # 8. Media Service - S3 (Puerto 3007)
   media-service:
     build: ./backend/media-service
     container_name: media_service
+    restart: always
     env_file: ./backend/media-service/.env
     environment:
       - DB_HOST=db
       - DB_PORT=5432
       - PORT=3007
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # 9. Moderation Service (Puerto 3008)
   moderation-service:
     build: ./backend/moderation-service
     container_name: moderation_service
-    #ports:
-    #  - "3008:3008"
+    restart: always
     env_file: ./backend/moderation-service/.env
     environment:
       - DB_HOST=db
       - DB_PORT=5432
       - PORT=3008
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # 10. API Gateway (Puerto 8080) - Punto de entrada único
   api-gateway:
     build: ./backend/api-gateway
     container_name: api_gateway
+    restart: always
     ports:
       - "8080:8080"
     depends_on:
-      - auth-service
-      - post-service
-      - user-service
-      - media-service
-      - search-service
-      - interactions-service
-      - audit-service
-      - moderation-service
+      auth-service:
+        condition: service_healthy
+      post-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      media-service:
+        condition: service_healthy
+      search-service:
+        condition: service_healthy
+      interactions-service:
+        condition: service_healthy
+      audit-service:
+        condition: service_healthy
+      moderation-service:
+        condition: service_healthy
     environment:
       - PORT=8080
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:

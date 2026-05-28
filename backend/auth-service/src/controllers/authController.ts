@@ -18,12 +18,12 @@ export const register = async (req: Request, res: Response) => {
 
         const createdUser = newUser.rows[0];
 
-        // --- REGISTRO EN AUDITORÍA ---
         await sendToAudit(
-            createdUser.id, 
-            'REGISTRO_USUARIO', 
+            createdUser.id,
+            'REGISTRO_USUARIO',
             `Nuevo usuario registrado: ${username}`,
-            req.headers['x-correlation-id'] as string
+            req.headers['x-correlation-id'] as string,
+            { actor_role: 'USER', entity_type: 'USUARIO', entity_id: createdUser.id, result: 'EXITO' }
         );
 
         res.status(201).json(createdUser);
@@ -36,7 +36,11 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
     try {
         const result = await pool.query("SELECT * FROM usuarios WHERE email = $1", [email]);
-        if (result.rows.length === 0) return res.status(401).json({ message: "Credenciales incorrectas" });
+        if (result.rows.length === 0) {
+            await sendToAudit(null, 'LOGIN_FALLIDO', `Intento fallido para email: ${email}`, req.headers['x-correlation-id'] as string,
+                { actor_role: 'DESCONOCIDO', entity_type: 'SESION', result: 'FALLO' });
+            return res.status(401).json({ message: "Credenciales incorrectas" });
+        }
 
         const user: IUser = result.rows[0];
 
@@ -47,11 +51,13 @@ export const login = async (req: Request, res: Response) => {
         const validPassword = await bcrypt.compare(password, user.password_hash);
 
         if (!validPassword) {
+            await sendToAudit(user.id!.toString(), 'LOGIN_FALLIDO', `Contraseña incorrecta para: ${user.username}`, req.headers['x-correlation-id'] as string,
+                { actor_role: user.rol, entity_type: 'SESION', entity_id: user.id!.toString(), result: 'FALLO' });
             return res.status(401).json({ message: "Credenciales incorrectas" });
         }
 
-        // --- REGISTRO EN AUDITORÍA ---
-        await sendToAudit(user.id!.toString(), 'LOGIN_EXITOSO', `Sesión iniciada por ${user.username}`, req.headers['x-correlation-id'] as string);
+        await sendToAudit(user.id!.toString(), 'LOGIN_EXITOSO', `Sesión iniciada por ${user.username}`, req.headers['x-correlation-id'] as string,
+            { actor_role: user.rol, entity_type: 'SESION', entity_id: user.id!.toString(), result: 'EXITO' });
 
         // --- LÓGICA DE TOKENS (ACTUALIZADA) ---
         // 1. Access Token (Corto: 15 minutos para mayor seguridad)

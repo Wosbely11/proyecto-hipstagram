@@ -56,6 +56,8 @@ app.get('/posts', async (req, res: Response) => {
     }
 });
 
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
+
 const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {
     console.log(`🔎 Search-Service corriendo en puerto ${PORT}`);

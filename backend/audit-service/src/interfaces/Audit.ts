@@ -1,8 +1,11 @@
 export interface IAuditRecord {
-    //usuario_id: number;
-    usuario_id: string;   // <--- Cambiado de number a string para soportar UUID
+    usuario_id: string | null;
     accion: string;
     detalles: string;
     ip_origen?: string;
-    fecha_creacion?: Date;
+    request_id?: string;
+    actor_role?: string;
+    entity_type?: string;
+    entity_id?: string;
+    result?: string;
 }

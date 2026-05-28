@@ -7,6 +7,7 @@ import pool from './db';
 import verificarToken, { AuthRequest } from './authMiddleware';
 import * as dotenv from 'dotenv';
 import AWS from 'aws-sdk';
+import { extractHashtags } from './helpers/hashtagParser';
 
 dotenv.config();
 
@@ -97,10 +98,7 @@ try {
         const nuevaPublicacion = result.rows[0];
 
         // 4. LÓGICA DE HASHTAGS
-        const palabras = (descripcion || '').split(' ');
-        const hashtags = palabras
-            .filter((word: string) => word.startsWith('#'))
-            .map((tag: string) => tag.replace('#', '').toLowerCase());
+        const hashtags = extractHashtags(descripcion);
 
         if (hashtags.length > 0) {
             for (const tag of hashtags) {
@@ -171,9 +169,10 @@ app.get('/', async (req, res) => {
                 EXISTS(SELECT 1 FROM publicaciones_hashtags WHERE publicacion_id = p.id) DESC,
                 COALESCE((SELECT SUM(tipo_voto) FROM votos WHERE publicacion_id = p.id), 0) DESC,
                 p.fecha_publicacion DESC
-        `);
+            LIMIT $1 OFFSET $2
+        `, [limit, offset]);
 
-        res.json(result.rows);
+        res.json({ page, limit, data: result.rows });
     } catch (err: any) {
         console.error("Error al obtener feed:", err);
         res.status(500).json({ error: "No se pudo cargar el feed" });
@@ -379,6 +378,8 @@ app.put('/admin/moderation/:id', verificarToken, async (req: AuthRequest, res: R
         res.status(500).json({ error: "Error al actualizar el estado de la publicación" });
     }
 });
+
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => console.log(`📸 Post-Service corriendo en puerto ${PORT}`));

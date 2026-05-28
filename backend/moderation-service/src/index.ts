@@ -2,9 +2,18 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 import verificarToken, { AuthRequest } from './authMiddleware';
 import * as dotenv from 'dotenv';
-import AWS from 'aws-sdk'; // IMPORTAMOS AWS
+import AWS from 'aws-sdk';
+
+const AUDIT_URL = process.env.AUDIT_SERVICE_URL || 'http://audit-service:3003/log';
+
+const logAudit = (usuario_id: string, accion: string, detalles: string, extras: object, correlationId?: string) => {
+    axios.post(AUDIT_URL, { usuario_id, accion, detalles, ip_origen: 'moderation-service', ...extras },
+        { headers: { 'x-correlation-id': correlationId || 'SIN-RASTREO' } }
+    ).catch(e => console.error('⚠️ Error en auditoría:', e.message));
+};
 
 dotenv.config();
 
@@ -52,6 +61,10 @@ app.post('/words', verificarToken, (req: AuthRequest, res: Response) => {
         writeWords(words);
     }
     res.json({ message: "Palabra agregada", palabras: words });
+
+    logAudit(req.user!.id, 'AGREGAR_PALABRA_PROHIBIDA', `Admin agregó palabra: "${lowerWord}"`,
+        { actor_role: 'ADMIN', entity_type: 'PALABRA_PROHIBIDA', entity_id: lowerWord, result: 'EXITO' },
+        req.headers['x-correlation-id'] as string);
 });
 
 // --- RUTA: ELIMINAR PALABRA ---
@@ -62,6 +75,10 @@ app.delete('/words/:word', verificarToken, (req: AuthRequest, res: Response) => 
     words = words.filter(w => w !== wordToDelete);
     writeWords(words);
     res.json({ message: "Palabra eliminada", palabras: words });
+
+    logAudit(req.user!.id, 'ELIMINAR_PALABRA_PROHIBIDA', `Admin eliminó palabra: "${wordToDelete}"`,
+        { actor_role: 'ADMIN', entity_type: 'PALABRA_PROHIBIDA', entity_id: wordToDelete, result: 'EXITO' },
+        req.headers['x-correlation-id'] as string);
 });
 
 // MIDDLEWARE DE TRAZABILIDAD (Mantiene el gafete que viene del Gateway)
@@ -136,6 +153,8 @@ app.post(['/check', '/moderation/check'], async (req: Request, res: Response) =>
         details: details
     });
 });
+
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3008;
 app.listen(PORT, () => {

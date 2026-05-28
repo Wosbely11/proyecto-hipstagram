@@ -61,10 +61,15 @@ CREATE TABLE comentarios (
 CREATE TABLE auditoria (
     id SERIAL PRIMARY KEY,
     usuario_id UUID REFERENCES usuarios(id),
-    accion VARCHAR(100) NOT NULL, -- Ejemplo: 'ELIMINAR_POST', 'LOGIN'
+    accion VARCHAR(100) NOT NULL,
     detalles TEXT,
     ip_origen VARCHAR(45),
-    fecha_accion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    fecha_accion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    request_id VARCHAR(100),
+    actor_role VARCHAR(10),
+    entity_type VARCHAR(50),
+    entity_id VARCHAR(100),
+    result VARCHAR(20) DEFAULT 'EXITO'
 );
 
 
