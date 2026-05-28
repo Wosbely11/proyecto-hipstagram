@@ -1,0 +1,180 @@
+# ============================================================
+# docker-compose.prod.yml — Producción (AWS EC2 + RDS)
+# Usa imágenes de ECR. La DB es la RDS externa (no contenedor).
+# Las credenciales de prod se inyectan desde .env.prod,
+# generado por Jenkins en cada deploy (nunca se versiona).
+# ============================================================
+
+services:
+
+  audit-service:
+    image: 630171690893.dkr.ecr.us-east-1.amazonaws.com/hipstagram-audit-service:latest
+    container_name: audit_service
+    restart: always
+    env_file:
+      - ./backend/audit-service/.env
+      - .env.prod
+    environment:
+      - PORT=3003
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  auth-service:
+    image: 630171690893.dkr.ecr.us-east-1.amazonaws.com/hipstagram-auth-service:latest
+    container_name: auth_service
+    restart: always
+    env_file:
+      - ./backend/auth-service/.env
+      - .env.prod
+    environment:
+      - AUDIT_SERVICE_URL=http://audit-service:3003/log
+    depends_on:
+      audit-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  post-service:
+    image: 630171690893.dkr.ecr.us-east-1.amazonaws.com/hipstagram-post-service:latest
+    container_name: post_service
+    restart: always
+    env_file:
+      - ./backend/post-service/.env
+      - .env.prod
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      audit-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  interactions-service:
+    image: 630171690893.dkr.ecr.us-east-1.amazonaws.com/hipstagram-interactions-service:latest
+    container_name: interactions_service
+    restart: always
+    env_file:
+      - ./backend/interactions-service/.env
+      - .env.prod
+    environment:
+      - PORT=3004
+    depends_on:
+      audit-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  search-service:
+    image: 630171690893.dkr.ecr.us-east-1.amazonaws.com/hipstagram-search-service:latest
+    container_name: search_service
+    restart: always
+    env_file:
+      - ./backend/search-service/.env
+      - .env.prod
+    environment:
+      - PORT=3005
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  user-service:
+    image: 630171690893.dkr.ecr.us-east-1.amazonaws.com/hipstagram-user-service:latest
+    container_name: user_service
+    restart: always
+    env_file:
+      - ./backend/user-service/.env
+      - .env.prod
+    environment:
+      - PORT=3006
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3006/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  media-service:
+    image: 630171690893.dkr.ecr.us-east-1.amazonaws.com/hipstagram-media-service:latest
+    container_name: media_service
+    restart: always
+    env_file:
+      - ./backend/media-service/.env
+      - .env.prod
+    environment:
+      - PORT=3007
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  moderation-service:
+    image: 630171690893.dkr.ecr.us-east-1.amazonaws.com/hipstagram-moderation-service:latest
+    container_name: moderation_service
+    restart: always
+    env_file:
+      - ./backend/moderation-service/.env
+      - .env.prod
+    environment:
+      - PORT=3008
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3008/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  api-gateway:
+    image: 630171690893.dkr.ecr.us-east-1.amazonaws.com/hipstagram-gateway:latest
+    container_name: api_gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      post-service:
+        condition: service_healthy
+      interactions-service:
+        condition: service_healthy
+      search-service:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      media-service:
+        condition: service_healthy
+      audit-service:
+        condition: service_healthy
+      moderation-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  uploads_data:
