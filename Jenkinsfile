@@ -132,6 +132,9 @@ pipeline {
                                 touch \$dir/.env
                             done
 
+                            # Detener contenedores previos (libera puertos ocupados)
+                            docker compose -f docker-compose.prod.yml down 2>/dev/null || true
+
                             # Pull últimas imágenes y levantar
                             docker compose -f docker-compose.prod.yml pull
                             docker compose -f docker-compose.prod.yml up -d --remove-orphans
