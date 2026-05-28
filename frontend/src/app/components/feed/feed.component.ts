@@ -116,6 +116,11 @@ buscar() {
     this.cargarFeed();
   }
 
+ irAPerfil() {
+    const uid = this.authService.obtenerUsuarioId();
+    if (uid) this.router.navigate(['/profile', uid]);
+  }
+
  cerrarSesion() {
     this.authService.logout();
     this.router.navigate(['/login']);
