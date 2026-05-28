@@ -78,5 +78,18 @@ CREATE TABLE auditoria (
 ALTER TABLE usuarios ADD COLUMN activo BOOLEAN DEFAULT TRUE;
 
 -- 2. Permitir que moderación controle la visibilidad de los posts
-ALTER TABLE publicaciones ADD COLUMN estado_moderacion VARCHAR(20) DEFAULT 'APROBADO' 
+ALTER TABLE publicaciones ADD COLUMN estado_moderacion VARCHAR(20) DEFAULT 'APROBADO'
 CHECK (estado_moderacion IN ('PENDIENTE', 'APROBADO', 'BLOQUEADO'));
+
+-- ─────────────────────────────────────────────────────────────
+-- Usuario administrador por defecto (password: admin123)
+-- Hash generado con bcrypt, 10 rondas de sal
+-- ─────────────────────────────────────────────────────────────
+INSERT INTO usuarios (username, email, password_hash, rol, activo)
+VALUES (
+    'admin',
+    'admin@hipstagram.com',
+    '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    'ADMIN',
+    true
+) ON CONFLICT (username) DO NOTHING;
