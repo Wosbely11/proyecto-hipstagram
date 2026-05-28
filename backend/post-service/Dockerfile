@@ -29,9 +29,6 @@ RUN npm install --omit=dev
 # Copiamos solo la carpeta compilada desde la etapa de 'builder'
 COPY --from=builder /app/dist ./dist
 
-# Copiamos el archivo de entorno (asegúrate de que esté en la raíz en producción)
-COPY .env .
-
 # Exponemos el puerto del servicio
 EXPOSE 3002
 
