@@ -50,8 +50,14 @@ pipeline {
                 scannerHome = tool 'SonarQubeScanner'
             }
             steps {
+                sh 'mv frontend/tsconfig.json frontend/tsconfig.json.bak'
                 withSonarQubeEnv('SonarQube-Server') {
                     sh "${scannerHome}/bin/sonar-scanner"
+                }
+            }
+            post {
+                always {
+                    sh 'mv frontend/tsconfig.json.bak frontend/tsconfig.json 2>/dev/null || true'
                 }
             }
         }
