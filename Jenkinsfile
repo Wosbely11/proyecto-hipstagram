@@ -143,7 +143,7 @@ pipeline {
 
     post {
         success {
-            echo "✅ Deploy exitoso → http://54.81.113.172:8080"
+            echo "✅ Deploy exitoso → http://54.234.8.66:8080"
         }
         failure {
             echo "❌ Pipeline falló. Revisa los logs de Jenkins."
