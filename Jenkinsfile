@@ -50,6 +50,7 @@ pipeline {
                 scannerHome = tool 'SonarQubeScanner'
             }
             steps {
+                sh 'find backend -maxdepth 2 -name node_modules -type d | xargs rm -rf'
                 sh 'mv frontend/tsconfig.json frontend/tsconfig.json.bak'
                 withSonarQubeEnv('SonarQube-Server') {
                     sh "${scannerHome}/bin/sonar-scanner"
