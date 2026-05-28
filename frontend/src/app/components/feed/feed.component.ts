@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms'; // Importante para [(ngModel)]
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth/auth.service';
@@ -119,5 +120,35 @@ buscar() {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
-  
+
+  esMiPublicacion(post: any): boolean {
+    const uid = this.authService.obtenerUsuarioId();
+    if (!uid || post?.usuario_id == null) return false;
+    return (
+      String(post.usuario_id).toLowerCase() === String(uid).toLowerCase()
+    );
+  }
+
+  eliminarPost(postId: string) {
+    if (!confirm('¿Eliminar esta publicación?')) return;
+    const id = String(postId).trim();
+    this.postService.eliminarPost(id).subscribe({
+      next: () => this.cargarFeed(),
+      error: (err: HttpErrorResponse) => {
+        const body = err.error as { message?: string } | null;
+        const msg =
+          body && typeof body === 'object' && body.message
+            ? body.message
+            : err.status === 403
+              ? 'No autorizado o la publicación no existe.'
+              : `No se pudo eliminar (${err.status}).`;
+        alert(msg);
+      }
+    });
+  }
+
+  limpiarHashtags(texto: string): string {
+    return texto.replace(/#\S+/g, '').trim();
+  }
+
 }

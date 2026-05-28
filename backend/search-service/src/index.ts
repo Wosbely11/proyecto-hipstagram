@@ -43,6 +43,9 @@ app.get('/posts', async (req, res: Response) => {
             FROM publicaciones p
             LEFT JOIN usuarios u ON p.usuario_id = u.id
             WHERE p.descripcion ILIKE $1
+               OR EXISTS (
+                   SELECT 1 FROM comentarios c WHERE c.publicacion_id = p.id AND c.texto ILIKE $1
+               )
             ORDER BY p.fecha_publicacion DESC
         `, [searchQuery]);
 
@@ -52,6 +55,8 @@ app.get('/posts', async (req, res: Response) => {
         res.status(500).json({ error: "Error interno al buscar publicaciones" });
     }
 });
+
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {

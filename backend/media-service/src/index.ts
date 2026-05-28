@@ -51,6 +51,8 @@ app.post('/upload', upload.single('image'), (req: Request, res: Response) => {
     });
 });
 
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
+
 const PORT = process.env.PORT || 3007;
 app.listen(PORT, () => {
     console.log(`☁️ Media-Service (S3 v3) corriendo en puerto ${PORT}`);

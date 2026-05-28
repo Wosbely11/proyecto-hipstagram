@@ -1,0 +1,29 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="avatar-placeholder">📸</div>
+    <div class="profile-info">
+      <h2>Publicaciones del Usuario</h2>
+      <p><strong>{{ totalPosts }}</strong> publicaciones encontradas</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div *ngIf="!loading; else loadingTemplate" class="posts-grid">
+    <div *ngFor="let post of posts" class="grid-item">
+      <img [src]="post.url_imagen" [alt]="post.descripcion">
+      <div class="grid-item-overlay">
+        <span>❤️ {{ post.likes }}</span>
+        <span>💬 {{ post.total_comentarios }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="posts.length === 0 && !loading" class="no-posts">
+    <p>Este usuario aún no tiene publicaciones aprobadas.</p>
+  </div>
+
+  <ng-template #loadingTemplate>
+    <div class="loading-spinner">Cargando galería del perfil...</div>
+  </ng-template>
+</div>

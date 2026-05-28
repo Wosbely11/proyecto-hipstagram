@@ -43,6 +43,23 @@ export class AuthService {
     return localStorage.getItem('token');
   }
 
+  /** ID del usuario actual desde el payload del JWT (mismo `id` que envía el backend al verificar el token). */
+  obtenerUsuarioId(): string | null {
+    const token = this.obtenerToken();
+    if (!token) return null;
+    try {
+      const part = token.split('.')[1];
+      if (!part) return null;
+      const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+      const payload = JSON.parse(atob(padded)) as { id?: string };
+      const raw = payload?.id;
+      return raw != null ? String(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
   // Cierra la sesión eliminando el token y el rol
   logout(): void {
     localStorage.removeItem('token');

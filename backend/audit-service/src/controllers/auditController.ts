@@ -4,17 +4,17 @@ import pool from '../config/db';
 import { IAuditRecord } from '../interfaces/Audit'; 
 
 export const createAuditLog = async (req: Request, res: Response): Promise<void> => {
-    // Al asignar el tipo IAuditRecord, TS te avisará si intentas usar una propiedad que no existe
-    const { usuario_id, accion, detalles, ip_origen }: IAuditRecord = req.body; 
-    
+    const { usuario_id, accion, detalles, ip_origen, request_id, actor_role, entity_type, entity_id, result }: IAuditRecord = req.body;
+
     const ipFinal = ip_origen || req.ip;
-    // Si la IP es IPv6 local (::1), la guardamos como 'Localhost' para que sea legible
     const ipFormateada = (ipFinal === '::1' || ipFinal === '127.0.0.1') ? 'Localhost' : ipFinal;
 
     try {
         await pool.query(
-            "INSERT INTO auditoria (usuario_id, accion, detalles, ip_origen) VALUES ($1, $2, $3, $4)",
-            [usuario_id, accion, detalles, ipFormateada]
+            `INSERT INTO auditoria
+             (usuario_id, accion, detalles, ip_origen, request_id, actor_role, entity_type, entity_id, result)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [usuario_id, accion, detalles, ipFormateada, request_id ?? null, actor_role ?? null, entity_type ?? null, entity_id ?? null, result ?? 'EXITO']
         );
         res.status(201).json({ message: "Registro de auditoría guardado exitosamente" });
     } catch (err: any) {

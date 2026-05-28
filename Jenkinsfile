@@ -1,39 +1,152 @@
 pipeline {
-    agent any // Se ejecuta en cualquier nodo disponible de Jenkins
+    agent any
+
+    tools {
+        nodejs 'Node20'
+    }
 
     environment {
-        // Jenkins extrae las llaves de su bóveda y las guarda en estas variables
-        AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY')
-        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_KEY')
-        AWS_REGION            = 'us-east-1' 
+        AWS_ACCOUNT_ID = '630171690893'
+        AWS_REGION     = 'us-east-1'
+        ECR_REGISTRY   = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
     }
 
     stages {
+
+        // ─────────────────────────────────────────
         stage('1. Obtener Código') {
             steps {
-                echo 'Descargando la última versión del repositorio...'
                 checkout scm
             }
         }
 
-        stage('2. Análisis de Calidad (SonarQube)') {
+        // ─────────────────────────────────────────
+        stage('2. Instalar Dependencias') {
+            steps {
+                dir('backend/auth-service')         { sh 'npm install' }
+                dir('backend/post-service')         { sh 'npm install' }
+                dir('backend/audit-service')        { sh 'npm install' }
+                dir('backend/interactions-service') { sh 'npm install' }
+                dir('backend/search-service')       { sh 'npm install' }
+                dir('backend/user-service')         { sh 'npm install' }
+                dir('backend/media-service')        { sh 'npm install' }
+                dir('backend/moderation-service')   { sh 'npm install' }
+                dir('backend/api-gateway')          { sh 'npm install' }
+            }
+        }
+
+        // ─────────────────────────────────────────
+        stage('3. Pruebas Unitarias y Cobertura') {
+            steps {
+                dir('backend/auth-service')         { sh 'npm run test:cov' }
+                dir('backend/post-service')         { sh 'npm run test:cov' }
+                dir('backend/interactions-service') { sh 'npm run test:cov' }
+            }
+        }
+
+        // ─────────────────────────────────────────
+        stage('4. Análisis SonarQube') {
             environment {
-                // Requiere que el plugin de SonarQube esté instalado en Jenkins
                 scannerHome = tool 'SonarQubeScanner'
             }
             steps {
-                echo 'Ejecutando escaneo de vulnerabilidades y bugs...'
                 withSonarQubeEnv('SonarQube-Server') {
                     sh "${scannerHome}/bin/sonar-scanner"
                 }
             }
         }
 
-        stage('3. Despliegue Simulado') {
+        // ─────────────────────────────────────────
+        stage('5. Quality Gate') {
             steps {
-                echo 'El código es seguro. Listo para ejecutar docker-compose...'
-                // sh "docker-compose up -d --build" ---------- Comentado para no afectar el servidor
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
+        }
+
+        // ─────────────────────────────────────────
+        stage('6. Build & Push a ECR') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-credentials',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    script {
+                        sh "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}"
+
+                        def services = [
+                            [dir: 'backend/auth-service',         repo: 'hipstagram-auth-service'],
+                            [dir: 'backend/post-service',         repo: 'hipstagram-post-service'],
+                            [dir: 'backend/audit-service',        repo: 'hipstagram-audit-service'],
+                            [dir: 'backend/interactions-service', repo: 'hipstagram-interactions-service'],
+                            [dir: 'backend/search-service',       repo: 'hipstagram-search-service'],
+                            [dir: 'backend/user-service',         repo: 'hipstagram-user-service'],
+                            [dir: 'backend/media-service',        repo: 'hipstagram-media-service'],
+                            [dir: 'backend/moderation-service',   repo: 'hipstagram-moderation-service'],
+                            [dir: 'backend/api-gateway',          repo: 'hipstagram-gateway']
+                        ]
+
+                        services.each { svc ->
+                            def imageTag = "${ECR_REGISTRY}/${svc.repo}:latest"
+                            sh "docker build -t ${imageTag} ${svc.dir}"
+                            sh "docker push ${imageTag}"
+                        }
+                    }
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────
+        stage('7. Deploy en EC2') {
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-credentials',
+                     accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                     secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'],
+                    string(credentialsId: 'DB_PASSWORD_PROD', variable: 'DB_PASS')
+                ]) {
+                    script {
+                        sh """
+                            # Login a ECR para poder hacer pull
+                            aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+                            # Generar .env.prod con credenciales de producción (nunca se versiona)
+                            printf 'DB_HOST=hipstagram-db.cs9sacam0rnd.us-east-1.rds.amazonaws.com\\n' > .env.prod
+                            printf 'DB_NAME=hipstagram_db\\n'         >> .env.prod
+                            printf 'DB_USER=hipstagram_admin\\n'      >> .env.prod
+                            printf 'DB_PASSWORD=%s\\n' '${DB_PASS}'  >> .env.prod
+
+                            # Pull últimas imágenes y levantar
+                            docker compose -f docker-compose.prod.yml pull
+                            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+
+                            # Limpiar imágenes sin usar
+                            docker image prune -f
+                        """
+                    }
+                }
+            }
+        }
+
+        // ─────────────────────────────────────────
+        stage('8. Smoke Test') {
+            steps {
+                sh 'sleep 45'
+                sh 'curl -f http://localhost:8080/health || (echo "❌ Gateway no responde" && exit 1)'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Deploy exitoso → http://54.81.113.172:8080"
+        }
+        failure {
+            echo "❌ Pipeline falló. Revisa los logs de Jenkins."
         }
     }
 }

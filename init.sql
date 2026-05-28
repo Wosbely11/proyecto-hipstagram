@@ -8,7 +8,8 @@ CREATE TABLE usuarios (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     rol VARCHAR(10) CHECK (rol IN ('ADMIN', 'USER')) DEFAULT 'USER',
-    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    refresh_token VARCHAR(500)
 );
 
 
@@ -60,10 +61,15 @@ CREATE TABLE comentarios (
 CREATE TABLE auditoria (
     id SERIAL PRIMARY KEY,
     usuario_id UUID REFERENCES usuarios(id),
-    accion VARCHAR(100) NOT NULL, -- Ejemplo: 'ELIMINAR_POST', 'LOGIN'
+    accion VARCHAR(100) NOT NULL,
     detalles TEXT,
     ip_origen VARCHAR(45),
-    fecha_accion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    fecha_accion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    request_id VARCHAR(100),
+    actor_role VARCHAR(10),
+    entity_type VARCHAR(50),
+    entity_id VARCHAR(100),
+    result VARCHAR(20) DEFAULT 'EXITO'
 );
 
 
@@ -72,5 +78,18 @@ CREATE TABLE auditoria (
 ALTER TABLE usuarios ADD COLUMN activo BOOLEAN DEFAULT TRUE;
 
 -- 2. Permitir que moderación controle la visibilidad de los posts
-ALTER TABLE publicaciones ADD COLUMN estado_moderacion VARCHAR(20) DEFAULT 'APROBADO' 
+ALTER TABLE publicaciones ADD COLUMN estado_moderacion VARCHAR(20) DEFAULT 'APROBADO'
 CHECK (estado_moderacion IN ('PENDIENTE', 'APROBADO', 'BLOQUEADO'));
+
+-- ─────────────────────────────────────────────────────────────
+-- Usuario administrador por defecto (password: admin123)
+-- Hash generado con bcrypt, 10 rondas de sal
+-- ─────────────────────────────────────────────────────────────
+INSERT INTO usuarios (username, email, password_hash, rol, activo)
+VALUES (
+    'admin',
+    'admin@hipstagram.com',
+    '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi',
+    'ADMIN',
+    true
+) ON CONFLICT (username) DO NOTHING;

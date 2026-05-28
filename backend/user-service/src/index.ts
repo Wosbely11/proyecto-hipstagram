@@ -103,6 +103,8 @@ app.put('/admin/role', verificarToken, async (req: AuthRequest, res: Response) =
     }
 });
 
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
+
 const PORT = process.env.PORT || 3006;
 app.listen(PORT, () => {
     console.log(`👤 User-Service en TS corriendo en puerto ${PORT}`);

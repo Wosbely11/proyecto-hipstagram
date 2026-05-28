@@ -1,0 +1,60 @@
+.profile-container {
+  max-width: 935px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 20px;
+}
+.avatar-placeholder {
+  width: 80px;
+  height: 80px;
+  background: #efefef;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.divider {
+  border: 0;
+  border-top: 1px solid #dbdbdb;
+  margin-bottom: 20px;
+}
+/* Cuadrícula perfecta estilo Instagram */
+.posts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+.grid-item {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  background-color: #efefef;
+  cursor: pointer;
+}
+.grid-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* Capa oscura con estadísticas en Hover */
+.grid-item-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  font-weight: bold;
+}
+.grid-item:hover .grid-item-overlay {
+  opacity: 1;
+}

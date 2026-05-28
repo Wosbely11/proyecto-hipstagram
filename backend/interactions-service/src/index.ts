@@ -4,6 +4,7 @@ import axios from 'axios';
 import pool from './db';
 import verificarToken, { AuthRequest } from './authMiddleware';
 import * as dotenv from 'dotenv';
+import { validateComment } from './helpers/commentValidation';
 
 dotenv.config();
 
@@ -45,6 +46,11 @@ app.post('/comentar', verificarToken, async (req: AuthRequest, res: Response) =>
     const { publicacion_id, texto } = req.body;
     const usuario_id = req.user?.id;
 
+    const validation = validateComment(texto);
+    if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+    }
+
     console.log(`📝 Recibiendo comentario: "${texto}" para post: ${publicacion_id}`);
 
     try {
@@ -67,6 +73,8 @@ app.post('/comentar', verificarToken, async (req: AuthRequest, res: Response) =>
         res.status(500).json({ error: "Error al guardar comentario" });
     }
 });
+
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3004;
 app.listen(PORT, () => {

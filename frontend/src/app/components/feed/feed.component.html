@@ -35,10 +35,11 @@
       <div class="flex items-center space-x-4 mb-4">
         <div class="w-10 h-10 bg-linear-to-r from-hipstagram-primary to-hipstagram-light rounded-full flex shrink-0 items-center justify-center text-white font-bold text-sm">Yo</div>
         
-        <input 
-          type="text" 
+        <input
+          type="text"
           [(ngModel)]="nuevoTexto"
-          placeholder="¿Qué estás pensando? #hashtag" 
+          maxlength="128"
+          placeholder="¿Qué estás pensando? #hashtag"
           class="w-full bg-gray-100 rounded-full px-5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-hipstagram-secondary transition-all">
       </div>
 
@@ -66,20 +67,40 @@
 
     <div *ngFor="let post of publicaciones" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
       
-      <div class="p-4 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 bg-hipstagram-dark rounded-full flex items-center justify-center text-white font-bold text-xs uppercase">
+      <div class="p-4 flex items-start justify-between gap-2">
+        <div class="flex gap-3 min-w-0 flex-1">
+          <div class="w-9 h-9 bg-hipstagram-dark rounded-full flex items-center justify-center text-white font-bold text-xs uppercase shrink-0">
             {{ post.username?.charAt(0) || 'U' }}
           </div>
-          <div>
+          <div class="min-w-0 flex-1">
             <p class="font-bold text-sm text-hipstagram-dark leading-tight">{{ post.username || 'Usuario Anónimo' }}</p>
-            <p class="text-xs text-gray-400">{{ post.fecha_publicacion | date:'short' }}</p>
+            <p class="text-xs text-gray-400 mb-2">{{ post.fecha_publicacion | date:'short' }}</p>
+            <p class="text-sm text-gray-800">
+              {{ limpiarHashtags(post.descripcion) }}
+            </p>
           </div>
         </div>
+        <button
+          *ngIf="esMiPublicacion(post)"
+          type="button"
+          (click)="eliminarPost(post.id)"
+          title="Eliminar"
+          class="shrink-0 text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+          aria-label="Eliminar publicación">
+          <span class="text-xl leading-none">🗑️</span>
+        </button>
       </div>
 
       <div class="w-full bg-gray-100 flex items-center justify-center">
         <img [src]="post.url_imagen" alt="Post" class="w-full h-auto object-cover max-h-150">
+      </div>
+
+      <div class="px-4 py-2 bg-gray-50 border-b border-gray-100" *ngIf="post.hashtags?.length > 0">
+        <div class="flex flex-wrap gap-2">
+          <span *ngFor="let tag of post.hashtags" class="inline-block bg-hipstagram-primary text-white text-xs font-semibold px-3 py-1 rounded-full hover:bg-hipstagram-dark transition-colors cursor-pointer">
+            #{{ tag }}
+          </span>
+        </div>
       </div>
 
       <div class="p-4">
@@ -90,11 +111,6 @@
         </div>
         
         <p class="font-bold text-sm mb-2 text-hipstagram-dark">{{ post.likes || 0 }} puntos</p>
-        
-        <p class="text-sm text-gray-800 mb-4">
-          <span class="font-bold text-hipstagram-dark mr-1">{{ post.username }}</span> 
-          {{ post.descripcion }}
-        </p>
 
         <div class="mt-3 mb-4 space-y-1" *ngIf="post.comentarios?.length > 0">
           <div *ngFor="let com of post.comentarios" class="text-sm flex items-start space-x-2 bg-gray-50 p-2 rounded-lg">
@@ -105,7 +121,8 @@
         
         <div class="mt-2 border-t border-gray-100 pt-3">
           <div class="flex items-center space-x-2">
-            <input #comentarioInput type="text" placeholder="Añadir un comentario..." 
+            <input #comentarioInput type="text" placeholder="Añadir un comentario..."
+                   maxlength="128"
                    class="flex-1 text-xs bg-gray-50 rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-hipstagram-primary border border-transparent focus:border-gray-200">
             <button (click)="enviarComentario(post.id, comentarioInput.value); comentarioInput.value=''" 
                     class="text-hipstagram-primary font-bold text-xs px-2 hover:text-hipstagram-dark transition-colors">
