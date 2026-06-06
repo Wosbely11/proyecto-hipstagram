@@ -42,9 +42,24 @@ export class FeedComponent implements OnInit {
 
   seleccionarImagen(event: any) {
     const file = event.target.files[0];
+    
     if (file) {
+      // VALIDACIÓN: Verificar si el archivo seleccionado NO es una imagen
+      if (!file.type.startsWith('image/')) {
+        alert('❌ Archivo no válido. Por favor, selecciona únicamente archivos de imagen (PNG, JPG, JPEG, WEBP, etc.).');
+        
+        // Limpiamos los estados físicos para bloquear el botón de Publicar
+        this.archivoSeleccionado = null;
+        this.vistaPreviaImagen = null;
+        
+        // Limpiamos el valor del input en el DOM para que si vuelven a dar click, responda correctamente
+        event.target.value = '';
+        return;
+      }
+
+      // Si pasa la validación, procedemos normalmente con la subida y la vista previa
       this.archivoSeleccionado = file;
-      // Crear vista previa para el usuario
+      
       const reader = new FileReader();
       reader.onload = e => this.vistaPreviaImagen = reader.result;
       reader.readAsDataURL(file);
