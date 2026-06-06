@@ -47,6 +47,18 @@ app.post('/comentar', verificarToken, async (req: AuthRequest, res: Response) =>
 
     console.log(`📝 Recibiendo comentario: "${texto}" para post: ${publicacion_id}`);
 
+    // --- NUEVA VALIDACIÓN: Límite de 128 caracteres ---
+    if (!texto || typeof texto !== 'string') {
+        return res.status(400).json({ error: "El comentario no puede estar vacío" });
+    }
+
+    if (texto.length > 128) {
+        return res.status(400).json({ 
+            error: `El comentario excede el límite permitido. Máximo 128 caracteres (Ingresado: ${texto.length})` 
+        });
+    }
+    // --------------------------------------------------
+
     try {
         const nuevoComentario = await pool.query(
             "INSERT INTO comentarios (usuario_id, publicacion_id, texto) VALUES ($1, $2, $3) RETURNING *",

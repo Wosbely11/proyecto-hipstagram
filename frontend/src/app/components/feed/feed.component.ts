@@ -87,12 +87,22 @@ export class FeedComponent implements OnInit {
   enviarComentario(postId: string, texto: string) {
     if (!texto.trim()) return; // Evita enviar comentarios vacíos
     
+    // VALIDACIÓN PREVENTIVA: Detener si excede los 128 caracteres
+    if (texto.length > 128) {
+      alert('El comentario no puede ser mayor a 128 caracteres.');
+      return;
+    }
+    
     this.postService.comentar(postId, texto).subscribe({
       next: () => {
         console.log('Comentario publicado');
         this.cargarFeed(); // Recarga para ver el comentario si lo muestras en el feed
       },
-      error: (err) => console.error('Error al comentar', err)
+      error: (err) => {
+        console.error('Error al comentar', err);
+        // Si el backend rechaza la petición, mostramos el mensaje de error de tu interaction-service
+        alert(err.error?.error || 'Error al guardar el comentario');
+      }
     });
   }
 
