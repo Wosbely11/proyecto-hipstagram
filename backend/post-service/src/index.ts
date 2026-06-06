@@ -30,7 +30,6 @@ const upload = multer({ storage });
 
 
 // --- RUTA: SUBIR POST ---
-// --- RUTA: SUBIR POST ---
 app.post('/upload', verificarToken, upload.single('image'), async (req: AuthRequest, res: Response) => {
     const { descripcion } = req.body;
     const usuario_id = req.user?.id;

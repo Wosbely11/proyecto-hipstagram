@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// --- RUTA: BUSCAR POSTS POR TEXTO O HASHTAG ---
+// --- RUTA: BUSCAR POSTS POR TEXTO, HASHTAG O COMENTARIOS ---
 // El API Gateway manda /search/posts hacia aquí, por defecto llega como /posts
 app.get('/posts', async (req, res: Response) => {
     const termino = req.query.q as string;
@@ -20,9 +20,7 @@ app.get('/posts', async (req, res: Response) => {
     }
 
     try {
-        // Usamos la misma mega-consulta del feed, pero agregamos un WHERE con ILIKE
         // ILIKE busca el texto sin importar mayúsculas/minúsculas. 
-        // Si el usuario busca "#viaje", encontrará las descripciones que tengan "#viaje".
         const searchQuery = `%${termino}%`;
 
         const result = await pool.query(`
@@ -43,6 +41,12 @@ app.get('/posts', async (req, res: Response) => {
             FROM publicaciones p
             LEFT JOIN usuarios u ON p.usuario_id = u.id
             WHERE p.descripcion ILIKE $1
+               OR EXISTS (
+                   SELECT 1 
+                   FROM comentarios c
+                   WHERE c.publicacion_id = p.id 
+                     AND c.texto ILIKE $1
+               )
             ORDER BY p.fecha_publicacion DESC
         `, [searchQuery]);
 
