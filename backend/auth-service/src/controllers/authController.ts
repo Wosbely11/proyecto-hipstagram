@@ -37,7 +37,20 @@ export const login = async (req: Request, res: Response) => {
         const result = await pool.query("SELECT * FROM usuarios WHERE email = $1", [email]);
         if (result.rows.length === 0) return res.status(401).json({ message: "Credenciales incorrectas" });
 
-        const user: IUser = result.rows[0];
+        // Nota: Si TypeScript marca error aquí por "activo", asegúrate de agregarlo a tu interface IUser
+        const user: any = result.rows[0]; 
+        
+        // --- NUEVO: BLOQUEO DE SEGURIDAD PARA USUARIOS INACTIVOS ---
+        // Verificamos si la columna 'activo' es falsa en la base de datos
+        if (user.activo === false) {
+            // Opcional: Podrías registrar en auditoría el intento fallido
+            return res.status(403).json({ 
+                error: "Usuario inactivo",
+                message: "El usuario está desactivado. Comuníquese con el administrador."
+            });
+        }
+        // -----------------------------------------------------------
+
         const validPassword = await bcrypt.compare(password, user.password_hash);
         
         if (!validPassword) {
@@ -46,10 +59,6 @@ export const login = async (req: Request, res: Response) => {
         }
 
         // --- REGISTRO EN AUDITORÍA ---
-        // Usamos user.id que es el UUID de tu DB
-        //await sendToAudit(user.id!, 'LOGIN_EXITOSO', `Sesión iniciada por ${user.username}`);
-        // --- REGISTRO EN AUDITORÍA ---
-        // Usamos .toString() o simplemente aseguramos que sea string
         await sendToAudit(user.id!.toString(), 'LOGIN_EXITOSO', `Sesión iniciada por ${user.username}`);
 
         const token = jwt.sign(
@@ -58,7 +67,8 @@ export const login = async (req: Request, res: Response) => {
             { expiresIn: '2h' }
         );
 
-        res.json({ token, user: { username: user.username, rol: user.rol } });
+        // Agregamos 'activo' a la respuesta JSON por si el frontend lo requiere evaluar
+        res.json({ token, user: { username: user.username, rol: user.rol, activo: user.activo } });
     } catch (err: any) {
         res.status(500).json({ error: err.message });
     }
