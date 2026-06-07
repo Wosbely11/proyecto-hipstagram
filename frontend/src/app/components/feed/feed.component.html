@@ -73,16 +73,16 @@
 
     <div class="flex justify-center space-x-12 border-b border-gray-200 pb-3 text-xs font-bold tracking-wider uppercase text-gray-400">
       <button 
-        (click)="vistaActual = 'recientes'"
-        [ngClass]="vistaActual === 'recientes' ? 'text-hipstagram-dark border-b-2 border-hipstagram-dark pb-3 -mb-[14px]' : 'hover:text-gray-600'"
+        (click)="cambiarVista('recientes')"
+        [ngClass]="vistaActual === 'recientes' ? 'text-hipstagram-dark border-b-2 border-hipstagram-dark pb-3 -mb-3.5' : 'hover:text-gray-600'"
         class="flex items-center space-x-1.5 transition-all focus:outline-none">
         <span>📅</span>
         <span>Recientes</span>
       </button>
 
       <button 
-        (click)="vistaActual = 'populares'"
-        [ngClass]="vistaActual === 'populares' ? 'text-hipstagram-dark border-b-2 border-hipstagram-dark pb-3 -mb-[14px]' : 'hover:text-gray-600'"
+        (click)="cambiarVista('populares')"
+        [ngClass]="vistaActual === 'populares' ? 'text-hipstagram-dark border-b-2 border-hipstagram-dark pb-3 -mb-3.5' : 'hover:text-gray-600'"
         class="flex items-center space-x-1.5 transition-all focus:outline-none">
         <span>🔥</span>
         <span>Populares</span>
@@ -93,7 +93,7 @@
 
 
     <div *ngIf="vistaActual === 'recientes'" class="space-y-8">
-      <div *ngFor="let post of publicacionesOrdenadas" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div *ngFor="let post of publicacionesRenderizadas" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         
         <div class="p-4 flex items-center justify-between">
           <div class="flex items-center space-x-3">
@@ -148,7 +148,7 @@
       </div>
     </div>
 <div *ngIf="vistaActual === 'populares'" class="grid grid-cols-3 gap-1 sm:gap-3">
-      <div *ngFor="let post of publicacionesOrdenadas" class="relative aspect-square overflow-hidden bg-gray-200 rounded-md group cursor-pointer border border-gray-100 shadow-xs">
+      <div *ngFor="let post of publicacionesRenderizadas" class="relative aspect-square overflow-hidden bg-gray-200 rounded-md group cursor-pointer border border-gray-100 shadow-xs">
         
         <img [src]="post.url_imagen" alt="Post Popular" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
         
