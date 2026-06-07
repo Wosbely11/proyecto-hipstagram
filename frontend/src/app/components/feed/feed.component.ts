@@ -21,6 +21,9 @@ export class FeedComponent implements OnInit {
   archivoSeleccionado: File | null = null;
   vistaPreviaImagen: string | ArrayBuffer | null = null;
 
+  // --- NUEVA VARIABLE: Diccionario para rastrear los clicks locales y pintar los botones ---
+  misVotos: { [postId: string]: number } = {};
+
   constructor(
     private authService: AuthService, 
     private postService: PostService,
@@ -90,15 +93,19 @@ export class FeedComponent implements OnInit {
     });
   }
 
- 
-
+  // --- FUNCIÓN VOTAR MODIFICADA ---
   votar(postId: string, tipo: number) {
-  this.postService.votar(postId, tipo).subscribe({
-    next: () => this.cargarFeed(), // Recargamos para ver el nuevo conteo
-    error: (err) => alert('Ya has votado en esta publicación')
-  });
-}
-// 3. Agrega la función para enviar el comentario
+    // 1. Guardamos el voto visualmente al instante para que [ngClass] cambie el color
+    this.misVotos[postId] = tipo;
+
+    // 2. Enviamos la petición al backend
+    this.postService.votar(postId, tipo).subscribe({
+      next: () => this.cargarFeed(), // Recargamos para ver el nuevo conteo
+      error: (err) => alert('Ocurrió un error al procesar el voto')
+    });
+  }
+
+  // 3. Agrega la función para enviar el comentario
   enviarComentario(postId: string, texto: string) {
     if (!texto.trim()) return; // Evita enviar comentarios vacíos
     
@@ -123,26 +130,25 @@ export class FeedComponent implements OnInit {
 
   terminoBusqueda: string = '';
 
-buscar() {
-  if (!this.terminoBusqueda.trim()) {
-    this.cargarFeed();
-    return;
+  buscar() {
+    if (!this.terminoBusqueda.trim()) {
+      this.cargarFeed();
+      return;
+    }
+    this.postService.buscarPosts(this.terminoBusqueda).subscribe({
+      next: (data) => this.publicaciones = data,
+      error: (err) => console.error(err)
+    });
   }
-  this.postService.buscarPosts(this.terminoBusqueda).subscribe({
-    next: (data) => this.publicaciones = data,
-    error: (err) => console.error(err)
-  });
-}
 
-// Función para limpiar la búsqueda y recargar el feed completo
+  // Función para limpiar la búsqueda y recargar el feed completo
   limpiarBusqueda() {
     this.terminoBusqueda = '';
     this.cargarFeed();
   }
 
- cerrarSesion() {
+  cerrarSesion() {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
-  
 }
