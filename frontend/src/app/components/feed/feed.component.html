@@ -71,98 +71,95 @@
       </div>
     </div>
 
-    <div *ngFor="let post of publicaciones" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-      
-      <div class="p-4 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-9 h-9 bg-hipstagram-dark rounded-full flex items-center justify-center text-white font-bold text-xs uppercase">
-            {{ post.username?.charAt(0) || 'U' }}
-          </div>
-          <div>
-            <p class="font-bold text-sm text-hipstagram-dark leading-tight">{{ post.username || 'Usuario Anónimo' }}</p>
-            <p class="text-xs text-gray-400">{{ post.fecha_publicacion | date:'short' }}</p>
+    <div class="flex justify-center space-x-12 border-b border-gray-200 pb-3 text-xs font-bold tracking-wider uppercase text-gray-400">
+      <button 
+        (click)="vistaActual = 'recientes'"
+        [ngClass]="vistaActual === 'recientes' ? 'text-hipstagram-dark border-b-2 border-hipstagram-dark pb-3 -mb-[14px]' : 'hover:text-gray-600'"
+        class="flex items-center space-x-1.5 transition-all focus:outline-none">
+        <span>📅</span>
+        <span>Recientes</span>
+      </button>
+
+      <button 
+        (click)="vistaActual = 'populares'"
+        [ngClass]="vistaActual === 'populares' ? 'text-hipstagram-dark border-b-2 border-hipstagram-dark pb-3 -mb-[14px]' : 'hover:text-gray-600'"
+        class="flex items-center space-x-1.5 transition-all focus:outline-none">
+        <span>🔥</span>
+        <span>Populares</span>
+      </button>
+    </div>
+
+    <div class="h-4"></div>
+
+
+    <div *ngIf="vistaActual === 'recientes'" class="space-y-8">
+      <div *ngFor="let post of publicacionesOrdenadas" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        
+        <div class="p-4 flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 bg-hipstagram-dark rounded-full flex items-center justify-center text-white font-bold text-xs uppercase">
+              {{ post.username?.charAt(0) || 'U' }}
+            </div>
+            <div>
+              <p class="font-bold text-sm text-hipstagram-dark leading-tight">{{ post.username || 'Usuario Anónimo' }}</p>
+              <p class="text-xs text-gray-400">{{ post.fecha_publicacion | date:'short' }}</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="w-full bg-gray-100 flex items-center justify-center">
-        <img [src]="post.url_imagen" alt="Post" class="w-full h-auto object-cover max-h-150">
-      </div>
+        <div class="w-full bg-gray-100 flex items-center justify-center">
+          <img [src]="post.url_imagen" alt="Post" class="w-full h-auto object-cover max-h-150">
+        </div>
 
-      <div class="p-4">
-        <div class="flex space-x-4 mb-3">
+        <div class="p-4">
+          <div class="flex space-x-4 mb-3">
+            <button (click)="votar(post.id, 1)" [ngClass]="misVotos[post.id] === 1 ? 'text-red-500 scale-125 grayscale-0' : 'text-gray-400 hover:text-red-500 grayscale'" class="text-2xl transform transition-all duration-200" title="Me gusta">❤️</button>
+            <button (click)="votar(post.id, -1)" [ngClass]="misVotos[post.id] === -1 ? 'text-blue-500 scale-125 grayscale-0' : 'text-gray-400 hover:text-blue-500 grayscale'" class="text-2xl transform transition-all duration-200" title="No me gusta">👎</button>
+            <button class="text-gray-600 hover:text-hipstagram-primary text-2xl transform hover:scale-110 transition-all">💬</button>
+          </div>
           
-          <button 
-            (click)="votar(post.id, 1)" 
-            [ngClass]="misVotos[post.id] === 1 ? 'text-red-500 scale-125 grayscale-0' : 'text-gray-400 hover:text-red-500 grayscale'"
-            class="text-2xl transform transition-all duration-200" 
-            title="Me gusta">
-            ❤️
-          </button>
+          <p class="font-bold text-sm mb-2 text-hipstagram-dark">{{ post.likes || 0 }} puntos</p>
           
-          <button 
-            (click)="votar(post.id, -1)" 
-            [ngClass]="misVotos[post.id] === -1 ? 'text-blue-500 scale-125 grayscale-0' : 'text-gray-400 hover:text-blue-500 grayscale'"
-            class="text-2xl transform transition-all duration-200" 
-            title="No me gusta / Quitar voto">
-            👎
-          </button>
+          <p class="text-sm text-gray-800 mb-4">
+            <span class="font-bold text-hipstagram-dark mr-1">{{ post.username }}</span> 
+            {{ post.descripcion }}
+          </p>
 
-          <button class="text-gray-600 hover:text-hipstagram-primary text-2xl transform hover:scale-110 transition-all">💬</button>
-        </div>
-        
-        <p class="font-bold text-sm mb-2 text-hipstagram-dark">{{ post.likes || 0 }} puntos</p>
-        
-        <p class="text-sm text-gray-800 mb-4">
-          <span class="font-bold text-hipstagram-dark mr-1">{{ post.username }}</span> 
-          {{ post.descripcion }}
-        </p>
-
-        <div class="mt-3 mb-4 space-y-1" *ngIf="post.comentarios?.length > 0">
-          <div *ngFor="let com of post.comentarios" class="text-sm flex items-start space-x-2 bg-gray-50 p-2 rounded-lg">
-            <span class="font-bold text-hipstagram-dark text-xs mt-0.5">{{ com.username }}:</span>
-            <span class="text-gray-700 leading-tight">{{ com.texto }}</span>
+          <div class="mt-3 mb-4 space-y-1" *ngIf="post.comentarios?.length > 0">
+            <div *ngFor="let com of post.comentarios" class="text-sm flex items-start space-x-2 bg-gray-50 p-2 rounded-lg">
+              <span class="font-bold text-hipstagram-dark text-xs mt-0.5">{{ com.username }}:</span>
+              <span class="text-gray-700 leading-tight">{{ com.texto }}</span>
+            </div>
+          </div>
+          
+          <div class="mt-2 border-t border-gray-100 pt-3 flex flex-col space-y-1">
+            <div class="flex items-center space-x-2">
+              <input #comentarioInput type="text" placeholder="Añadir un comentario..." maxlength="128" (input)="0" class="flex-1 text-xs bg-gray-50 rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-hipstagram-primary border border-transparent focus:border-gray-200">
+              <button (click)="enviarComentario(post.id, comentarioInput.value); comentarioInput.value=''" [disabled]="!comentarioInput.value || !comentarioInput.value.trim()" class="text-hipstagram-primary font-bold text-xs px-2 hover:text-hipstagram-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Publicar</button>
+            </div>
+            <div class="flex justify-between items-center px-3 text-[10px]">
+              <span *ngIf="comentarioInput.value.length >= 100 && comentarioInput.value.length < 128" class="text-amber-500 font-medium animate-pulse">⚠️ Te acercas al límite de 128 caracteres</span>
+              <span *ngIf="comentarioInput.value.length === 128" class="text-red-500 font-bold">Límite máximo alcanzado.</span>
+              <span class="ml-auto font-mono" [ngClass]="{'text-gray-400': comentarioInput.value.length < 100, 'text-amber-500 font-semibold': comentarioInput.value.length >= 100 && comentarioInput.value.length < 128, 'text-red-500 font-bold': comentarioInput.value.length === 128}">{{ comentarioInput.value.length }}/128</span>
+            </div>
           </div>
         </div>
+
+      </div>
+    </div>
+<div *ngIf="vistaActual === 'populares'" class="grid grid-cols-3 gap-1 sm:gap-3">
+      <div *ngFor="let post of publicacionesOrdenadas" class="relative aspect-square overflow-hidden bg-gray-200 rounded-md group cursor-pointer border border-gray-100 shadow-xs">
         
-        <div class="mt-2 border-t border-gray-100 pt-3 flex flex-col space-y-1">
-          <div class="flex items-center space-x-2">
-            <input 
-              #comentarioInput 
-              type="text" 
-              placeholder="Añadir un comentario..." 
-              maxlength="128"
-              (input)="0"
-              class="flex-1 text-xs bg-gray-50 rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-hipstagram-primary border border-transparent focus:border-gray-200"
-            >
-            <button 
-              (click)="enviarComentario(post.id, comentarioInput.value); comentarioInput.value=''" 
-              [disabled]="!comentarioInput.value || !comentarioInput.value.trim()"
-              class="text-hipstagram-primary font-bold text-xs px-2 hover:text-hipstagram-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Publicar
-            </button>
+        <img [src]="post.url_imagen" alt="Post Popular" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105">
+        
+        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col items-center justify-center text-white space-y-1">
+          <div class="flex items-center space-x-1.5 font-bold text-sm sm:text-base">
+            <span>❤️</span>
+            <span>{{ post.likes || 0 }}</span>
           </div>
-
-          <div class="flex justify-between items-center px-3 text-[10px]">
-            <span *ngIf="comentarioInput.value.length >= 100 && comentarioInput.value.length < 128" class="text-amber-500 font-medium animate-pulse">
-              ⚠️ Te acercas al límite de 128 caracteres
-            </span>
-            <span *ngIf="comentarioInput.value.length === 128" class="text-red-500 font-bold">
-              Límite máximo alcanzado.
-            </span>
-
-            <span class="ml-auto font-mono" [ngClass]="{
-              'text-gray-400': comentarioInput.value.length < 100,
-              'text-amber-500 font-semibold': comentarioInput.value.length >= 100 && comentarioInput.value.length < 128,
-              'text-red-500 font-bold': comentarioInput.value.length === 128
-            }">
-              {{ comentarioInput.value.length }}/128
-            </span>
-          </div>
-
+          <p class="text-[10px] sm:text-xs text-gray-200 font-medium truncate max-w-[80%]">@{{ post.username }}</p>
         </div>
-        
+
       </div>
     </div>
 

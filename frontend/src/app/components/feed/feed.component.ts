@@ -24,6 +24,9 @@ export class FeedComponent implements OnInit {
   // --- NUEVA VARIABLE: Diccionario para rastrear los clicks locales y pintar los botones ---
   misVotos: { [postId: string]: number } = {};
 
+  // --- NUEVA VARIABLE: Controla qué pestaña visualiza el usuario ---
+  vistaActual: 'recientes' | 'populares' = 'recientes';
+
   constructor(
     private authService: AuthService, 
     private postService: PostService,
@@ -32,6 +35,15 @@ export class FeedComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarFeed();
+  }
+
+  get publicacionesOrdenadas() {
+    if (this.vistaActual === 'populares') {
+      // Creamos una copia con [...array] para no alterar el feed original y ordenamos por likes descendentemente
+      return [...this.publicaciones].sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    }
+    // Si es 'recientes', retorna el feed por defecto de PostgreSQL (por fecha)
+    return this.publicaciones;
   }
 
   cargarFeed() {
