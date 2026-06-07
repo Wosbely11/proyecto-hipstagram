@@ -11,31 +11,52 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// --- RUTA: VOTAR (LIKE/DISLIKE) ---
+// --- RUTA: VOTAR (LIKE / UNLIKE) ---
 app.post('/voto', verificarToken, async (req: AuthRequest, res: Response) => {
     const { publicacion_id, tipo_voto } = req.body; 
     const usuario_id = req.user?.id;
 
     try {
-        await pool.query(
-            `INSERT INTO votos (usuario_id, publicacion_id, tipo_voto) 
-             VALUES ($1, $2, $3) 
-             ON CONFLICT (usuario_id, publicacion_id) 
-             DO UPDATE SET tipo_voto = EXCLUDED.tipo_voto`, // <-- ESTA ES LA CORRECCIÓN MÁGICA
-            [usuario_id, publicacion_id, tipo_voto]
-        );
+        if (tipo_voto === -1) {
+            // LÓGICA TIPO INSTAGRAM: Si manda -1 (Unlike), ELIMINAMOS su voto previo
+            await pool.query(
+                "DELETE FROM votos WHERE usuario_id = $1 AND publicacion_id = $2",
+                [usuario_id, publicacion_id]
+            );
+            
+            res.json({ message: "Like removido correctamente" });
 
-        res.json({ message: "Voto registrado/actualizado correctamente" });
+            // Registrar en auditoría que quitó el like
+            axios.post('http://audit-service:3003/log', {
+                usuario_id,
+                accion: 'QUITAR_LIKE',
+                detalles: `Usuario quitó su like en post ${publicacion_id}`,
+                ip_origen: req.ip
+            }).catch(err => console.error("Error en auditoría:", err.message));
 
-        axios.post('http://audit-service:3003/log', {
-            usuario_id,
-            accion: 'VOTO_PUBLICACION',
-            detalles: `Usuario votó ${tipo_voto} en post ${publicacion_id}`,
-            ip_origen: req.ip
-        }).catch(err => console.error("Error en auditoría:", err.message));
+        } else {
+            // LÓGICA TIPO INSTAGRAM: Si manda 1 (Like), insertamos. 
+            // Si ya le había dado like (ON CONFLICT), lo ignoramos para no sumar doble.
+            await pool.query(
+                `INSERT INTO votos (usuario_id, publicacion_id, tipo_voto) 
+                 VALUES ($1, $2, 1) 
+                 ON CONFLICT (usuario_id, publicacion_id) DO NOTHING`,
+                [usuario_id, publicacion_id]
+            );
+
+            res.json({ message: "Like registrado correctamente" });
+
+            // Registrar en auditoría que dio like
+            axios.post('http://audit-service:3003/log', {
+                usuario_id,
+                accion: 'DAR_LIKE',
+                detalles: `Usuario dio like en post ${publicacion_id}`,
+                ip_origen: req.ip
+            }).catch(err => console.error("Error en auditoría:", err.message));
+        }
 
     } catch (err: any) {
-        console.error("❌ Error de BD al votar:", err.message); // <-- Esto nos dirá qué pasa
+        console.error("❌ Error de BD al votar:", err.message); 
         res.status(500).json({ error: "Error al procesar el voto" });
     }
 });
