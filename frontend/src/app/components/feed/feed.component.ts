@@ -173,4 +173,8 @@ export class FeedComponent implements OnInit {
     // Restaura el scroll del fondo
     document.body.style.overflow = 'auto'; 
   }
+
+  regresarAlInicio() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 }
