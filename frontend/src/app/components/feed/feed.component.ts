@@ -19,6 +19,9 @@ export class FeedComponent implements OnInit {
   
   // NUEVA VARIABLE: Lista que realmente se dibujará en el HTML
   publicacionesRenderizadas: any[] = [];
+
+  // --- NUEVA VARIABLE: Guarda el objeto del post que se va a abrir en el modal ---
+  postSeleccionado: any | null = null;
   
   nuevoTexto: string = '';
   archivoSeleccionado: File | null = null;
@@ -38,12 +41,19 @@ export class FeedComponent implements OnInit {
     this.cargarFeed();
   }
 
-  cargarFeed() {
+ cargarFeed() {
     this.postService.obtenerFeed().subscribe({
       next: (data) => {
-        // Validación de seguridad: Asegurarnos de que siempre sea un Array
         this.publicaciones = Array.isArray(data) ? data : []; 
         this.actualizarVista(); // Renderizamos según la pestaña actual
+
+        // --- NUEVO: Si el modal de detalles está abierto, actualizamos sus datos en tiempo real ---
+        if (this.postSeleccionado) {
+          const postActualizado = this.publicaciones.find(p => p.id === this.postSeleccionado.id);
+          if (postActualizado) {
+            this.postSeleccionado = postActualizado;
+          }
+        }
       },
       error: (err) => console.error('Error al cargar el feed', err)
     });
@@ -149,5 +159,18 @@ export class FeedComponent implements OnInit {
   cerrarSesion() {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  // --- NUEVAS FUNCIÓNES PARA MANEJAR EL MODAL ---
+  abrirModal(post: any) {
+    this.postSeleccionado = post;
+    // Opcional: Bloquea el scroll del fondo mientras está abierto
+    document.body.style.overflow = 'hidden'; 
+  }
+
+  cerrarModal() {
+    this.postSeleccionado = null;
+    // Restaura el scroll del fondo
+    document.body.style.overflow = 'auto'; 
   }
 }
