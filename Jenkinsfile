@@ -37,21 +37,21 @@ pipeline {
         }
 
         stage('Deploy to AWS EC2') {
-    steps {
-        script {
-            // Jenkins usa tu archivo .pem para entrar al servidor EC2
-            // Clona el código más reciente desde GitHub
-            // Y ejecuta docker-compose para levantar la versión de producción
-            sh '''
-                ssh -o StrictHostKeyChecking=no -i /ruta/a/tu/aws-hipstagram-key.pem ubuntu@IP_DE_TU_EC2 "
-                    rm -rf proyecto-hipstagram &&
-                    git clone https://github.com/Wosbely11/proyecto-hipstagram.git &&
-                    cd proyecto-hipstagram/proyecto-hipstagram-DW-Dev &&
-                    docker-compose -f docker-compose.prod.yml up -d --build
-                "
-            '''
+            steps {
+                script {
+                    // Jenkins usa tu archivo .pem para entrar al servidor EC2
+                    // Clona el código de la rama DW-Dev desde GitHub
+                    // Y ejecuta docker-compose para levantar la versión de producción
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no -i /ruta/a/tu/aws-hipstagram-key.pem ubuntu@IP_DE_TU_EC2 "
+                            rm -rf proyecto-hipstagram &&
+                            git clone -b DW-Dev https://github.com/Wosbely11/proyecto-hipstagram.git &&
+                            cd proyecto-hipstagram &&
+                            docker-compose -f docker-compose.prod.yml up -d --build
+                        "
+                    '''
+                }
+            }
         }
-    }
-}
     }
 }
