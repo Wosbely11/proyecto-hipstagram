@@ -62,7 +62,11 @@ export const login = async (req: Request, res: Response) => {
         await sendToAudit(user.id!.toString(), 'LOGIN_EXITOSO', `Sesión iniciada por ${user.username}`);
 
         const token = jwt.sign(
-            { id: user.id, rol: user.rol },
+            { 
+                id: user.id, 
+                username: user.username, 
+                rol: user.rol 
+            },
             process.env.JWT_SECRET || 'secret',
             { expiresIn: '2h' }
         );
