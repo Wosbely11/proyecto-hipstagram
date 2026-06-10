@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth/auth.service';
 import { PostService } from '../../services/post/post.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { inject } from '@angular/core';
 
 @Component({
   selector: 'app-feed',
@@ -13,6 +15,9 @@ import { PostService } from '../../services/post/post.service';
   styleUrl: './feed.component.css'
 })
 export class FeedComponent implements OnInit {
+
+  // Inyecta directamente el HttpClient al inicio de la clase
+  private http = inject(HttpClient);
   
   // Lista original (Intocable, mantiene el orden por fecha)
   publicaciones: any[] = [];
@@ -22,13 +27,17 @@ export class FeedComponent implements OnInit {
 
   // --- NUEVA VARIABLE: Guarda el objeto del post que se va a abrir en el modal ---
   postSeleccionado: any | null = null;
-  
+
+  // Variables de control de vista (UNIFICADAS)
+  vistaActual: 'recientes' | 'populares' | 'perfil' = 'recientes';
+  misPublicaciones: any[] = [];
+  fotoPerfilUrl: string | null = null;
+  miUsuario: any = null; // Guardará { id, username } tras leer tu token de sesión // Dejará de ser null al leer el token
+
   nuevoTexto: string = '';
   archivoSeleccionado: File | null = null;
   vistaPreviaImagen: string | ArrayBuffer | null = null;
   misVotos: { [postId: string]: number } = {};
-
-  vistaActual: 'recientes' | 'populares' = 'recientes';
   terminoBusqueda: string = '';
 
   constructor(
@@ -39,23 +48,54 @@ export class FeedComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarFeed();
+
+    // 1. Lo primero es obtener la identidad del usuario logueado desde el Token
+    this.obtenerDatosUsuarioDesdeToken();
+    
+    // 2. Luego cargas las publicaciones desde tu servicio/API
+    //this.cargarPublicaciones();
   }
 
- cargarFeed() {
+  // NUEVA FUNCIÓN: Rompe el JWT y extrae id, username y rol
+  obtenerDatosUsuarioDesdeToken() {
+    const token = localStorage.getItem('token'); // Asegúrate de que coincida con la clave al hacer login
+    if (token) {
+      try {
+        // Un JWT está compuesto por: Header.Payload.Signature
+        // El Payload es la posición [1] codificado en Base64. Usamos atob() para leerlo.
+        const payloadBase64 = token.split('.')[1];
+        const payloadDecodificado = JSON.parse(atob(payloadBase64));
+        
+        // Asignamos las propiedades al objeto miUsuario
+        this.miUsuario = {
+          id: payloadDecodificado.id,
+          username: payloadDecodificado.username,
+          rol: payloadDecodificado.rol
+        };
+
+        // Intentamos cargar su foto de perfil local ahora que ya sabemos su username
+        this.cargarFotoPerfilLocal();
+      } catch (error) {
+        console.error('Error crítico al decodificar el token de sesión:', error);
+      }
+    }
+  }
+
+  cargarFeed() {
     this.postService.obtenerFeed().subscribe({
-      next: (data) => {
+      next: (data: any) => {
         this.publicaciones = Array.isArray(data) ? data : []; 
         this.actualizarVista(); // Renderizamos según la pestaña actual
 
         // --- NUEVO: Si el modal de detalles está abierto, actualizamos sus datos en tiempo real ---
         if (this.postSeleccionado) {
-          const postActualizado = this.publicaciones.find(p => p.id === this.postSeleccionado.id);
+          const postActualizado = this.publicaciones.find((p: any) => p.id === this.postSeleccionado.id);
           if (postActualizado) {
             this.postSeleccionado = postActualizado;
           }
         }
       },
-      error: (err) => console.error('Error al cargar el feed', err)
+      error: (err: any) => console.error('Error al cargar el feed', err)
     });
   }
 
@@ -65,18 +105,27 @@ export class FeedComponent implements OnInit {
     this.actualizarVista();
   }
 
+  
+
   // --- NUEVA FUNCIÓN: Ordena los posts solo cuando es estrictamente necesario ---
-  actualizarVista() {
-    if (this.vistaActual === 'populares') {
-      // Ordena por Likes (de mayor a menor)
-      this.publicacionesRenderizadas = [...this.publicaciones].sort((a, b) => {
-        const likesA = Number(a.likes) || 0;
-        const likesB = Number(b.likes) || 0;
-        return likesB - likesA; 
-      });
-    } else {
-      // Si es "Recientes", la mostramos tal como vino del backend
-      this.publicacionesRenderizadas = [...this.publicaciones];
+actualizarVista() {
+    if (this.vistaActual === 'recientes') {
+      this.publicacionesRenderizadas = [...this.publicaciones].sort(
+        (a, b) => new Date(b.fecha_publicacion).getTime() - new Date(a.fecha_publicacion).getTime()
+      );
+    } else if (this.vistaActual === 'populares') {
+      this.publicacionesRenderizadas = [...this.publicaciones].sort(
+        (a, b) => (b.likes || 0) - (a.likes || 0)
+      );
+    } else if (this.vistaActual === 'perfil') {
+      // VALIDACIÓN: Si el usuario está correctamente identificado, filtramos la lista global
+      if (this.miUsuario && this.miUsuario.id) {
+        this.publicacionesRenderizadas = this.publicaciones.filter(
+          (p: any) => p.usuario_id === this.miUsuario.id
+        );
+      } else {
+        this.publicacionesRenderizadas = [];
+      }
     }
   }
 
@@ -92,7 +141,7 @@ export class FeedComponent implements OnInit {
       }
       this.archivoSeleccionado = file;
       const reader = new FileReader();
-      reader.onload = e => this.vistaPreviaImagen = reader.result;
+      reader.onload = (e: any) => this.vistaPreviaImagen = reader.result;
       reader.readAsDataURL(file);
     }
   }
@@ -113,7 +162,7 @@ export class FeedComponent implements OnInit {
         this.vistaPreviaImagen = null;
         this.cargarFeed(); // Al recargar, actualizarVista() se llamará automáticamente
       },
-      error: (err) => console.error('Error al publicar', err)
+      error: (err: any) => console.error('Error al publicar', err)
     });
   }
 
@@ -133,7 +182,7 @@ export class FeedComponent implements OnInit {
     }
     this.postService.comentar(postId, texto).subscribe({
       next: () => this.cargarFeed(),
-      error: (err) => alert(err.error?.error || 'Error al guardar el comentario')
+      error: (err: any) => alert(err.error?.error || 'Error al guardar el comentario')
     });
   }
 
@@ -143,11 +192,11 @@ export class FeedComponent implements OnInit {
       return;
     }
     this.postService.buscarPosts(this.terminoBusqueda).subscribe({
-      next: (data) => {
+      next: (data: any) => {
         this.publicaciones = Array.isArray(data) ? data : [];
         this.actualizarVista();
       },
-      error: (err) => console.error(err)
+      error: (err: any) => console.error(err)
     });
   }
 
@@ -164,17 +213,85 @@ export class FeedComponent implements OnInit {
   // --- NUEVAS FUNCIÓNES PARA MANEJAR EL MODAL ---
   abrirModal(post: any) {
     this.postSeleccionado = post;
-    // Opcional: Bloquea el scroll del fondo mientras está abierto
     document.body.style.overflow = 'hidden'; 
   }
 
   cerrarModal() {
     this.postSeleccionado = null;
-    // Restaura el scroll del fondo
     document.body.style.overflow = 'auto'; 
   }
 
   regresarAlInicio() {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Llama a esta función cuando el usuario haga clic en la pestaña "Mi Perfil"
+  cambiarAVistaPerfil() {
+    this.vistaActual = 'perfil';
+    this.actualizarVista();
+    
+    const datosUsuario = localStorage.getItem('usuario'); 
+    if (datosUsuario) {
+      this.miUsuario = JSON.parse(datosUsuario);
+      
+      // Corrección: Usar this.publicaciones en lugar de this.publicacionesGlobales
+      // y añadir tipo (post: any)
+      this.misPublicaciones = this.publicaciones.filter(
+        (post: any) => post.usuario_id === this.miUsuario.id
+      );
+      
+      this.cargarFotoPerfilLocal();
+    }
+  }
+
+  // Carga la foto desde LocalStorage usando el username como clave única
+  cargarFotoPerfilLocal() {
+    if (this.miUsuario?.username) {
+      this.fotoPerfilUrl = localStorage.getItem(`perfil_pic_${this.miUsuario.username}`);
+    }
+  }
+
+  // Guarda la imagen de la publicación seleccionada como foto de perfil
+  seleccionarComoFotoPerfil(urlImagen: string) {
+    if (this.miUsuario?.username) {
+      localStorage.setItem(`perfil_pic_${this.miUsuario.username}`, urlImagen);
+      this.fotoPerfilUrl = urlImagen;
+      alert('¡Foto de perfil actualizada!');
+    }
+  }
+//función eliminarPublicacion
+  // función eliminarPublicacion
+  eliminarPublicacion(idPost: string) { 
+    if (confirm('¿Estás seguro de que deseas eliminar de forma permanente esta publicación?')) {
+      
+      // Obtenemos el token de sesión
+      const token = localStorage.getItem('token'); 
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${token}`
+      });
+
+      // CAMBIO APLICADO AQUÍ: Usamos el puerto 8080 y agregamos el prefijo /posts
+      this.http.delete(`http://localhost:8080/posts/delete/${idPost}`, { headers }).subscribe({
+        next: () => {
+          // Filtramos el post eliminado de tus arreglos locales para actualizar la interfaz
+          this.misPublicaciones = this.misPublicaciones.filter((p: any) => p.id !== idPost);
+          this.publicaciones = this.publicaciones.filter((p: any) => p.id !== idPost);
+          
+          // Si el post estaba abierto en el modal, lo cerramos
+          if (this.postSeleccionado && this.postSeleccionado.id === idPost) {
+             this.postSeleccionado = null;
+          }
+
+          // Forzamos la actualización de la pantalla
+          this.actualizarVista();
+          alert('Publicación eliminada correctamente.');
+        },
+        error: (err: any) => {
+          console.error('Error al eliminar el post en el frontend:', err);
+          alert('Hubo un error al intentar eliminar la publicación.');
+        }
+      });
+    }
+  }
+  
 }

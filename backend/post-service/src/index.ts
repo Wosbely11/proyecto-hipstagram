@@ -143,30 +143,39 @@ app.get('/', async (req, res) => {
 
 // --- RUTA: ELIMINAR POST ---
 app.delete('/delete/:id', verificarToken, async (req: AuthRequest, res: Response) => {
-    const { id } = req.params;
+    const postId = req.params.id;
     const usuario_id = req.user?.id;
+    const rol = req.user?.rol;
 
     try {
-        const result = await pool.query(
-            "DELETE FROM publicaciones WHERE id = $1 AND usuario_id = $2 RETURNING *",
-            [id, usuario_id]
-        );
-
-        if (result.rowCount === 0) {
-            return res.status(403).json({ message: "No autorizado o no existe" });
+        const postResult = await pool.query("SELECT usuario_id FROM publicaciones WHERE id = $1", [postId]);
+        
+        if (postResult.rowCount === 0) {
+            return res.status(404).json({ error: "Publicación no encontrada" });
         }
 
-        res.json({ message: "Publicación eliminada" });
+        const post = postResult.rows[0];
 
+        if (post.usuario_id !== usuario_id && rol !== 'ADMIN') {
+            return res.status(403).json({ error: "No tienes permiso para eliminar esta publicación" });
+        }
+
+        // Eliminar de la base de datos (ON DELETE CASCADE limpiará el resto)
+        await pool.query("DELETE FROM publicaciones WHERE id = $1", [postId]);
+
+        res.json({ message: "Publicación eliminada exitosamente" });
+
+        // Enviar a auditoría
         axios.post('http://audit-service:3003/log', {
             usuario_id,
             accion: 'ELIMINAR_POST',
-            detalles: `Eliminado post: ${id}`,
+            detalles: `El usuario eliminó el post con ID: ${postId}`,
             ip_origen: req.ip
-        }).catch(e => console.error(e.message));
+        }).catch(err => console.error("⚠️ Error enviando a auditoría:", err.message));
 
     } catch (err: any) {
-        res.status(500).json({ error: err.message });
+        console.error("Error crítico al eliminar la publicación:", err);
+        res.status(500).json({ error: "Fallo interno al intentar eliminar la publicación" });
     }
 });
 

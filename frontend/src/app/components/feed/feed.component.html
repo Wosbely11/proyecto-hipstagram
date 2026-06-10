@@ -11,14 +11,7 @@
           [(ngModel)]="terminoBusqueda" 
           (keyup.enter)="buscar()"
           placeholder="Buscar hashtags o texto..." 
-          class="bg-gray-100 rounded-md px-4 py-1.5 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-hipstagram-secondary w-64 transition-all">
-        
-        <button (click)="regresarAlInicio()" 
-            class="fixed bottom-6 right-6 bg-gray-950 hover:bg-gray-800 text-white p-3 rounded-full shadow-2xl z-50 transition-all duration-300 cursor-pointer flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
-        </button>
+          class="bg-gray-100 rounded-md px-4 py-1.5 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-hipstagram-secondary w-64 transition-all">       
 
         <button 
           *ngIf="terminoBusqueda"
@@ -29,11 +22,23 @@
         </button>
       </div>
 
+      <button (click)="cambiarAVistaPerfil()" [class.font-bold]="vistaActual === 'perfil'" class="px-4 py-2">
+      Mi Perfil
+      </button>
+
       <div class="flex items-center space-x-4">
         <button (click)="cerrarSesion()" class="text-sm font-semibold text-gray-500 hover:text-red-500 transition-colors">
           Cerrar Sesión
         </button>
       </div>
+
+
+      <button (click)="regresarAlInicio()" 
+            class="fixed bottom-6 right-6 bg-gray-950 hover:bg-gray-800 text-white p-3 rounded-full shadow-2xl z-50 transition-all duration-300 cursor-pointer flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                </svg>
+        </button>
     </div>
   </nav>
 
@@ -79,6 +84,7 @@
     </div>
 
     <div class="flex justify-center space-x-12 border-b border-gray-200 pb-3 text-xs font-bold tracking-wider uppercase text-gray-400">
+      
       <button 
         (click)="cambiarVista('recientes')"
         [ngClass]="vistaActual === 'recientes' ? 'text-hipstagram-dark border-b-2 border-hipstagram-dark pb-3 -mb-3.5' : 'hover:text-gray-600'"
@@ -163,6 +169,54 @@
 
       </div>
     </div>
+
+    <div *ngIf="vistaActual === 'perfil'" class="max-w-2xl mx-auto mt-6 p-4 animate-fade-in">
+  
+  <div class="flex items-center space-x-8 border-b border-gray-200 pb-8 mb-6">
+    
+    <div class="w-28 h-28 rounded-full overflow-hidden border-2 border-gray-300 bg-gray-100 flex items-center justify-center shadow-inner">
+      <img [src]="fotoPerfilUrl || 'https://cdn-icons-png.flaticon.com/512/149/149071.png'" 
+           class="w-full h-full object-cover">
+    </div>
+    
+    <div>
+      <h2 class="text-2xl font-normal text-gray-800 mb-2">@{{ miUsuario?.username }}</h2>
+      <div class="text-sm text-gray-600">
+        <span class="font-semibold text-gray-900">{{ publicacionesRenderizadas.length }}</span> publicaciones
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-2 md:gap-4">
+    <div *ngFor="let post of publicacionesRenderizadas" 
+         class="relative group aspect-square bg-gray-100 rounded border border-gray-200 overflow-hidden shadow-sm">
+      
+      <img [src]="post.url_imagen" class="w-full h-full object-cover">
+      
+      <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-center items-center space-y-3 p-2">
+        
+        <button (click)="seleccionarComoFotoPerfil(post.url_imagen)" 
+                class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition shadow-md w-full max-w-32.5 text-center cursor-pointer">
+          Usar como Perfil
+        </button>
+        
+        <button (click)="eliminarPublicacion(post.id)" 
+                class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition shadow-md w-full max-w-32.5 text-center cursor-pointer">
+          Eliminar Post
+        </button>
+        
+      </div>
+    </div>
+  </div>
+  
+  <div *ngIf="publicacionesRenderizadas.length === 0" class="text-center text-gray-400 py-16">
+    <svg xmlns="http://www.w3.org/2000/svg" class="mx-auto h-12 w-12 mb-2 stroke-1 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 002-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+    <p class="text-sm">No has publicado ninguna imagen todavía.</p>
+  </div>
+</div>
+
 
     <div *ngIf="publicaciones.length === 0" class="text-center py-10 text-gray-500">
       <p class="text-3xl mb-2">📭</p>
