@@ -16,6 +16,7 @@ import { inject } from '@angular/core';
 })
 export class FeedComponent implements OnInit {
 
+
   // Inyecta directamente el HttpClient al inicio de la clase
   private http = inject(HttpClient);
   
@@ -47,33 +48,34 @@ export class FeedComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.cargarFeed();
 
     // 1. Lo primero es obtener la identidad del usuario logueado desde el Token
     this.obtenerDatosUsuarioDesdeToken();
-    
+
     // 2. Luego cargas las publicaciones desde tu servicio/API
     //this.cargarPublicaciones();
+    this.cargarFeed();  
   }
 
   // NUEVA FUNCIÓN: Rompe el JWT y extrae id, username y rol
   obtenerDatosUsuarioDesdeToken() {
-    const token = localStorage.getItem('token'); // Asegúrate de que coincida con la clave al hacer login
+    const token = localStorage.getItem('token'); 
     if (token) {
       try {
-        // Un JWT está compuesto por: Header.Payload.Signature
-        // El Payload es la posición [1] codificado en Base64. Usamos atob() para leerlo.
         const payloadBase64 = token.split('.')[1];
         const payloadDecodificado = JSON.parse(atob(payloadBase64));
+        console.log("Datos que vienen en el Token:", payloadDecodificado);
         
-        // Asignamos las propiedades al objeto miUsuario
+        // CORRECCIÓN: Si payloadDecodificado.username no existe, intentamos usar otra propiedad común como 'nombre' o 'id'
+        const usernameDetectado = payloadDecodificado.username || payloadDecodificado.nombre || 'usuario_anonimo';
+
         this.miUsuario = {
-          id: payloadDecodificado.id,
-          username: payloadDecodificado.username,
-          rol: payloadDecodificado.rol
+          id: payloadDecodificado.id || payloadDecodificado.id_usuario,
+          username: usernameDetectado,
+          rol: payloadDecodificado.rol || 'USER'
         };
 
-        // Intentamos cargar su foto de perfil local ahora que ya sabemos su username
+        // Ahora cargamos la foto de perfil localmente con un nombre seguro
         this.cargarFotoPerfilLocal();
       } catch (error) {
         console.error('Error crítico al decodificar el token de sesión:', error);
@@ -228,20 +230,10 @@ actualizarVista() {
   // Llama a esta función cuando el usuario haga clic en la pestaña "Mi Perfil"
   cambiarAVistaPerfil() {
     this.vistaActual = 'perfil';
-    this.actualizarVista();
-    
-    const datosUsuario = localStorage.getItem('usuario'); 
-    if (datosUsuario) {
-      this.miUsuario = JSON.parse(datosUsuario);
-      
-      // Corrección: Usar this.publicaciones en lugar de this.publicacionesGlobales
-      // y añadir tipo (post: any)
-      this.misPublicaciones = this.publicaciones.filter(
-        (post: any) => post.usuario_id === this.miUsuario.id
-      );
-      
-      this.cargarFotoPerfilLocal();
-    }
+    this.actualizarVista(); // Esto ya filtra las publicaciones correctamente porque this.miUsuario.id ya existe
+
+    // Solo cargamos la foto, la información del usuario ya la tenemos desde el Token
+    this.cargarFotoPerfilLocal();
   }
 
   // Carga la foto desde LocalStorage usando el username como clave única
@@ -293,5 +285,13 @@ actualizarVista() {
       });
     }
   }
+
+  onSeleccionarFotoPerfil(event: any) {
+  const file = event.target.files[0];
+  if (file) {
+    console.log("Foto lista para subir:", file.name);
+    // Próximo paso: conectar el servicio para subir la imagen a AWS S3
+  }
+}
   
 }
